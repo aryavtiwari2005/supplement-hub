@@ -3,8 +3,8 @@
 import { useRouter } from 'next/navigation';
 import React, { useState, createContext, useCallback, useContext } from 'react'
 import Link from 'next/link'
-import { Moon, Sun, Mail, Lock, ArrowRight } from 'lucide-react'
-import { motion, AnimatePresence } from 'framer-motion'
+import { Mail, Lock, ArrowRight } from 'lucide-react'
+import { motion } from 'framer-motion'
 
 type Theme = 'light' | 'dark'
 
