@@ -54,23 +54,8 @@ const ThemeContext = createContext<ThemeContextType>({
   toggleTheme: () => {}
 })
 
-// Theme Provider
-export const ThemeProvider: React.FC<{ children: React.ReactNode }> = ({ children }) => {
-  const [theme, setTheme] = useState<Theme>('light')
-
-  const toggleTheme = useCallback(() => {
-    setTheme((prevTheme) => (prevTheme === 'light' ? 'dark' : 'light'))
-  }, [])
-
-  return (
-    <ThemeContext.Provider value={{ theme, toggleTheme }}>
-      {children}
-    </ThemeContext.Provider>
-  )
-}
-
 // Custom Theme Hook
-export const useTheme = () => useContext(ThemeContext)
+const useTheme = () => useContext(ThemeContext)
 
 export default function SignupPage() {
   const { theme } = useTheme()
