@@ -56,7 +56,7 @@ const ThemeContext = createContext<ThemeContextType>({
   toggleTheme: () => {}
 })
 
-export const useTheme = () => useContext(ThemeContext)
+const useTheme = () => useContext(ThemeContext)
 
 export default function LoginPage() {
   const router = useRouter();
