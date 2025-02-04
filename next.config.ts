@@ -57,14 +57,6 @@ const nextConfig: NextConfig = {
       ? { exclude: ['error'] } 
       : false,
   },
-  
-  // Experimental features
-  experimental: {
-    // Enable new image optimization
-    images: {
-      allowFutureImage: true,
-    }
-  }
 }
 
 export default nextConfig
