@@ -80,6 +80,7 @@ export default function LoginPage() {
         router.push('/profile');
       } else {
         const { message } = await res.json();
+        console.log(message)
         setError(message);
       }
     } catch {
@@ -212,7 +213,7 @@ export default function LoginPage() {
           </form>
 
           <p className={`mt-8 text-center ${THEMES[theme].text.secondary}`}>
-            Don&aspos;t have an account?
+            Dont have an account?
             <Link
               href="/signup"
               className="text-yellow-500 hover:text-yellow-600 transition-colors"

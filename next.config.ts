@@ -1,62 +1,57 @@
-import { NextConfig } from 'next'
+import { NextConfig } from "next";
 
 const nextConfig: NextConfig = {
   // Image configuration
   images: {
     // Allow specific domains for external images (if needed)
-    domains: [
-      'localhost',
-      'example.com',
-      'cdn.yoursite.com'
-    ],
-    
+    domains: ["localhost", "example.com", "cdn.yoursite.com"],
+
     // Image formats
-    formats: ['image/avif', 'image/webp'],
-    
+    formats: ["image/avif", "image/webp"],
+
     // Minimum cache time for images
     minimumCacheTTL: 60,
   },
-  
+
+  env: {
+    JWT_SECRET: process.env.JWT_SECRET,
+    NEXT_PUBLIC_BASE_URL: process.env.NEXT_PUBLIC_BASE_URL,
+    EMAIL_PASS: process.env.EMAIL_PASS,
+    EMAIL_USER: process.env.EMAIL_USER,
+    NEXT_PUBLIC_SUPABASE_ANON_KEY: process.env.NEXT_PUBLIC_SUPABASE_ANON_KEY,
+    NEXT_PUBLIC_SUPABASE_URL: process.env.NEXT_PUBLIC_SUPABASE_URL,
+  },
+
   // Webpack configuration (if needed)
   webpack: (config, { isServer }) => {
     // Add any custom webpack configurations
-    return config
+    return config;
   },
-  
-  // Environment variables
-  env: {
-    // Add any environment-specific variables
-    NEXT_PUBLIC_SITE_NAME: 'Supplement Hub',
-    NEXT_PUBLIC_API_URL: process.env.NODE_ENV === 'production' 
-      ? 'https://api.yourdomain.com' 
-      : 'http://localhost:3000/api'
-  },
-  
+
   // Redirect configurations
   async redirects() {
     return [
       // Example redirects
       {
-        source: '/old-product/:id',
-        destination: '/products/:id',
+        source: "/old-product/:id",
+        destination: "/products/:id",
         permanent: true,
-      }
-    ]
+      },
+    ];
   },
-  
+
   // Performance and optimization
   productionBrowserSourceMaps: false,
-  
+
   // Enable React StrictMode
   reactStrictMode: true,
-  
+
   // Compiler options
   compiler: {
     // Remove console logs in production
-    removeConsole: process.env.NODE_ENV === 'production' 
-      ? { exclude: ['error'] } 
-      : false,
+    removeConsole:
+      process.env.NODE_ENV === "production" ? { exclude: ["error"] } : false,
   },
-}
+};
 
-export default nextConfig
+export default nextConfig;

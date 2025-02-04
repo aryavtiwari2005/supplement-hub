@@ -1,22 +1,14 @@
 'use client'
 
 import { motion } from 'framer-motion'
-import { 
-  ShieldCheckIcon, 
-  TrophyIcon, 
-  SparklesIcon, 
-  GlobeAltIcon,
-  BeakerIcon,
-  FireIcon,
-  AcademicCapIcon
-} from '@heroicons/react/24/solid'
+import { Shield, Trophy, Sparkles, Globe, Beaker, FireExtinguisher, Book } from 'lucide-react'
 import { useSelector } from 'react-redux'
 import { selectTheme } from '@/redux/themeSlice'
 import { THEMES } from '@/utils/theme'
 
 const WHY_FEATURES = [
   {
-    icon: ShieldCheckIcon,
+    icon: Shield,
     title: 'Quality Assured',
     description: 'Rigorous testing and certification for every product we sell.',
     color: 'text-green-500',
@@ -26,7 +18,7 @@ const WHY_FEATURES = [
     }
   },
   {
-    icon: TrophyIcon,
+    icon: Trophy,
     title: 'Premium Brands',
     description: 'Curated selection from top global supplement manufacturers.',
     color: 'text-yellow-500',
@@ -36,7 +28,7 @@ const WHY_FEATURES = [
     }
   },
   {
-    icon: SparklesIcon,
+    icon: Sparkles,
     title: 'Performance Optimized',
     description: 'Scientifically formulated supplements for maximum results.',
     color: 'text-purple-500',
@@ -46,7 +38,7 @@ const WHY_FEATURES = [
     }
   },
   {
-    icon: GlobeAltIcon,
+    icon: Globe,
     title: 'PAN India Shipping',
     description: 'Fast and reliable delivery to your doorstep, anywhere in the world.',
     color: 'text-blue-500',
@@ -99,9 +91,9 @@ export default function WhySupplementHub() {
         transition={{ duration: 1 }}
       >
         {[
-          { Icon: BeakerIcon, animate: { x: [0, 50, 0], y: [0, -50, 0], rotate: [0, 10, -10, 0] } },
-          { Icon: FireIcon, animate: { x: [0, -50, 0], y: [0, 50, 0], rotate: [0, -10, 10, 0] } },
-          { Icon: AcademicCapIcon, animate: { x: [0, 50, 0], y: [0, -50, 0] } }
+          { Icon: Beaker, animate: { x: [0, 50, 0], y: [0, -50, 0], rotate: [0, 10, -10, 0] } },
+          { Icon: FireExtinguisher, animate: { x: [0, -50, 0], y: [0, 50, 0], rotate: [0, -10, 10, 0] } },
+          { Icon: Book, animate: { x: [0, 50, 0], y: [0, -50, 0] } }
         ].map(({ Icon, animate }, index) => (
           <motion.div
             key={index}

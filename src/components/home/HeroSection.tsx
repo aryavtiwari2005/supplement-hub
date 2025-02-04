@@ -2,7 +2,7 @@
 
 import { motion } from 'framer-motion'
 import { useState } from 'react'
-import { PlayIcon, ChevronRightIcon } from '@heroicons/react/24/solid'
+import { Play, ChevronRight } from 'lucide-react'
 import { useSelector } from 'react-redux'
 import { selectTheme } from '@/redux/themeSlice'
 import { THEMES } from '@/utils/theme'
@@ -141,7 +141,7 @@ export default function HeroSection() {
               `}
             >
               <span>Shop Now</span>
-              <ChevronRightIcon className="h-5 w-5 transform group-hover:translate-x-1 transition-transform" />
+              <ChevronRight className="h-5 w-5 transform group-hover:translate-x-1 transition-transform" />
             </motion.button>
 
             <motion.button 
@@ -155,7 +155,7 @@ export default function HeroSection() {
                   : 'bg-gray-700 text-white hover:bg-gray-600'}
               `}
             >
-              <PlayIcon 
+              <Play 
                 className={`
                   h-6 w-6 
                   ${theme === 'light' ? 'text-yellow-600' : 'text-yellow-400'}

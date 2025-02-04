@@ -7,7 +7,7 @@ import {
   toggleTheme, 
   selectTheme 
 } from '@/redux/themeSlice'
-import { SunIcon, MoonIcon } from '@heroicons/react/24/solid'
+import { Sun, Moon } from 'lucide-react'
 import { THEMES } from '@/utils/theme'
 
 export default function ThemeToggle() {
@@ -27,7 +27,7 @@ export default function ThemeToggle() {
       `}
       aria-label="Toggle theme"
     >
-      {theme === 'light' ? <MoonIcon className="h-6 w-6" /> : <SunIcon className="h-6 w-6" />}
+      {theme === 'light' ? <Moon className="h-6 w-6" /> : <Sun className="h-6 w-6" />}
     </button>
   )
 }
