@@ -9,7 +9,7 @@ export async function POST(req: Request) {
 
   try {
     const { data: user, error } = await supabase
-      .from("users")
+      .from("users_onescoop")
       .select("id, email, password, email_verified")
       .eq("email", email)
       .single();

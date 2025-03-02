@@ -24,7 +24,7 @@ export async function GET(req: NextRequest) {
 
     // Fetch user details from Supabase
     const { data: user, error } = await supabase
-      .from("users") // Replace 'users' with your Supabase table name
+      .from("users_onescoop") // Replace 'users' with your Supabase table name
       .select("id, name, email") // Adjust the fields as needed
       .eq("id", userId)
       .single();

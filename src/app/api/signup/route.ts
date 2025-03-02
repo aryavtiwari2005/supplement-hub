@@ -10,7 +10,7 @@ export async function POST(req: Request) {
   try {
     // Check if the user already exists
     const { data: existingUser } = await supabase
-      .from("users")
+      .from("users_onescoop")
       .select("*")
       .eq("email", email)
       .single();
@@ -29,7 +29,7 @@ export async function POST(req: Request) {
     const verificationToken = crypto.randomBytes(32).toString("hex");
 
     // Add user to the database
-    const { error } = await supabase.from("users").insert({
+    const { error } = await supabase.from("users_onescoop").insert({
       name,
       email,
       password: hashedPassword, // Store the hashed password
