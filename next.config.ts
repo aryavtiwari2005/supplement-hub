@@ -25,6 +25,8 @@ const nextConfig: NextConfig = {
     EMAIL_USER: process.env.EMAIL_USER,
     NEXT_PUBLIC_SUPABASE_ANON_KEY: process.env.NEXT_PUBLIC_SUPABASE_ANON_KEY,
     NEXT_PUBLIC_SUPABASE_URL: process.env.NEXT_PUBLIC_SUPABASE_URL,
+    RAZORPAY_KEY_SECRET: process.env.RAZORPAY_KEY_SECRET,
+    RAZORPAY_KEY_ID: process.env.RAZORPAY_KEY_ID,
   },
 
   // Webpack configuration (if needed)

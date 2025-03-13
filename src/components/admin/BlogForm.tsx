@@ -87,7 +87,9 @@ export default function BlogForm({
             <label className="block text-gray-700">Content</label>
             <RichTextEditor
               content={blogForm.content}
-              onChange={(content) => setBlogForm({ ...blogForm, content })}
+              onChange={(content: string) =>
+                setBlogForm({ ...blogForm, content })
+              }
             />
           </div>
           <div className="flex justify-end space-x-4">

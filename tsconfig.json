@@ -21,8 +21,7 @@
     "paths": {
       "@/*": ["./src/*"]
     },
-    "typeRoots": ["./node_modules/@types", "./src/types"],
-    "types": ["@next/types"] // Explicitly include Next.js types to resolve PageProps issues
+    "typeRoots": ["./node_modules/@types", "./src/types"]
   },
   "include": [
     "next-env.d.ts",
