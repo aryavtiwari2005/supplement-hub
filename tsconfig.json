@@ -21,12 +21,13 @@
     "paths": {
       "@/*": ["./src/*"]
     },
-    "typeRoots": ["./node_modules/@types", "src/types"]
+    "typeRoots": ["./node_modules/@types", "./src/types"],
+    "types": ["@next/types"] // Explicitly include Next.js types to resolve PageProps issues
   },
   "include": [
-    "next-env.d.ts", 
-    "**/*.ts", 
-    "**/*.tsx", 
+    "next-env.d.ts",
+    "**/*.ts",
+    "**/*.tsx",
     ".next/types/**/*.ts",
     "heroicons.d.ts"
   ],
