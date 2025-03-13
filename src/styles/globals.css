@@ -1,0 +1,51 @@
+:root {
+  /* Light Theme Palette */
+  --light-background-primary: #FFFFFF;
+  --light-background-secondary: #F5F5F5;
+  --light-text-primary: #000000;
+  --light-text-secondary: #333333;
+  --light-accent: #FFD700;
+  --light-border: #E0E0E0;
+
+  /* Dark Theme Palette */
+  --dark-background-primary: #121212;
+  --dark-background-secondary: #1E1E1E;
+  --dark-text-primary: #FFFFFF;
+  --dark-text-secondary: #CCCCCC;
+  --dark-accent: #FFC107;
+  --dark-border: #333333;
+}
+
+/* Light Theme Styles */
+html.light {
+  color-scheme: light;
+  
+  /* Background Colors */
+  --background-primary: var(--light-background-primary);
+  --background-secondary: var(--light-background-secondary);
+  
+  /* Text Colors */
+  --text-primary: var(--light-text-primary);
+  --text-secondary: var(--light-text-secondary);
+  
+  /* Accent and Border */
+  --accent-color: var(--light-accent);
+  --border-color: var(--light-border);
+}
+
+/* Dark Theme Styles */
+html.dark {
+  color-scheme: dark;
+  
+  /* Background Colors */
+  --background-primary: var(--dark-background-primary);
+  --background-secondary: var(--dark-background-secondary);
+  
+  /* Text Colors */
+  --text-primary: var(--dark-text-primary);
+  --text-secondary: var(--dark-text-secondary);
+  
+  /* Accent and Border */
+  --accent-color: var(--dark-accent);
+  --border-color: var(--dark-border);
+}

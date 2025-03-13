@@ -1,0 +1,149 @@
+@tailwind base;
+@tailwind components;
+@tailwind utilities;
+
+:root {
+  /* Light Theme Colors */
+  --light-background: #ffffff;
+  --light-foreground: #171717;
+  --light-background-primary: #f4f4f4;
+  --light-text-primary: #000000;
+  --light-background-secondary: #ffffff;
+  --light-accent: #fbbf24;
+  --light-border: #e5e7eb;
+
+  /* Dark Theme Colors */
+  --dark-background: #0a0a0a;
+  --dark-foreground: #ededed;
+  --dark-background-primary: #111827;
+  --dark-text-primary: #ffffff;
+  --dark-background-secondary: #1f2937;
+  --dark-accent: #ecc94b;
+  --dark-border: #374151;
+}
+
+/* Base Transition */
+html {
+  transition: 
+    background-color 0.3s, 
+    color 0.3s,
+    border-color 0.3s;
+}
+
+/* Light Theme Specific Styles */
+html.light {
+  color-scheme: light;
+  --background-primary: var(--light-background-primary);
+  --text-primary: var(--light-text-primary);
+  --background-secondary: var(--light-background-secondary);
+  --accent-color: var(--light-accent);
+  --border-color: var(--light-border);
+}
+
+/* Dark Theme Specific Styles */
+html.dark {
+  color-scheme: dark;
+  --background-primary: var(--dark-background-primary);
+  --text-primary: var(--dark-text-primary);
+  --background-secondary: var(--dark-background-secondary);
+  --accent-color: var(--dark-accent);
+  --border-color: var(--dark-border);
+}
+
+/* Global Body and HTML Styling */
+html, body {
+  background-color: var(--background-primary);
+  color: var(--text-primary);
+  transition: 
+    background-color 0.3s, 
+    color 0.3s,
+    border-color 0.3s;
+  min-height: 100vh;
+  font-size: 0.875rem; /* Set base font size to 14px (smaller than 16px) */
+}
+
+/* Ensure full page background coverage */
+#__next,
+.app-container {
+  background-color: var(--background-primary);
+  color: var(--text-primary);
+  min-height: 100vh;
+  transition: 
+    background-color 0.3s, 
+    color 0.3s;
+}
+
+/* Container Backgrounds */
+.bg-primary {
+  background-color: var(--background-primary);
+}
+
+.bg-secondary {
+  background-color: var(--background-secondary);
+}
+
+/* Text Colors */
+.text-primary {
+  color: var(--text-primary);
+}
+
+/* Border Colors */
+.border-theme {
+  border-color: var(--border-color);
+}
+
+/* Accent Utilities */
+.accent-color {
+  color: var(--accent-color);
+}
+
+.bg-accent {
+  background-color: var(--accent-color);
+}
+
+/* Optional: Scrollbar Theming */
+* {
+  scrollbar-width: thin;
+  scrollbar-color: 
+    var(--accent-color) 
+    var(--background-secondary);
+}
+
+/* Webkit Scrollbar */
+*::-webkit-scrollbar {
+  width: 8px;
+}
+
+*::-webkit-scrollbar-track {
+  background: var(--background-secondary);
+}
+
+*::-webkit-scrollbar-thumb {
+  background-color: var(--accent-color);
+  border-radius: 20px;
+}
+
+/* Theme Transition Utility */
+.theme-transition {
+  transition: 
+    background-color 0.3s, 
+    color 0.3s, 
+    border-color 0.3s;
+}
+
+/* Responsive Adjustments */
+@media (prefers-reduced-motion: reduce) {
+  * {
+    transition: none !important;
+  }
+}
+
+@layer utilities {
+  .no-scrollbar::-webkit-scrollbar {
+    display: none;
+  }
+  .no-scrollbar {
+    -ms-overflow-style: none;
+    scrollbar-width: none;
+  }
+}
