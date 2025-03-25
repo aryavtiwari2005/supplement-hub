@@ -221,10 +221,265 @@ export default function Header() {
               href: "/best-sellers/sport-nutrition/whey-protein",
               icon: Zap,
             },
-            // ... (other subItems remain the same)
+            {
+              name: "Whey Protein Isolate",
+              href: "/best-sellers/sport-nutrition/whey-protein-isolate",
+              icon: Heart,
+            },
+            {
+              name: "Mass Gainer",
+              href: "/best-sellers/sport-nutrition/mass-gainer",
+              icon: Flame,
+            },
+            {
+              name: "BCAA",
+              href: "/best-sellers/sport-nutrition/bcaa",
+              icon: Heart,
+            },
+            {
+              name: "Fat Burners",
+              href: "/best-sellers/sport-nutrition/fat-burners",
+              icon: Zap,
+            },
+            {
+              name: "Pre Workout",
+              href: "/best-sellers/sport-nutrition/pre-workout",
+              icon: Flame,
+            },
+            {
+              name: "Creatine",
+              href: "/best-sellers/sport-nutrition/creatine",
+              icon: Heart,
+            },
+            {
+              name: "Protein Bars",
+              href: "/best-sellers/sport-nutrition/protein-bars",
+              icon: Tag,
+            },
+            {
+              name: "Weight Gainer",
+              href: "/best-sellers/sport-nutrition/weight-gainer",
+              icon: Zap,
+            },
+            {
+              name: "Carb Blends",
+              href: "/best-sellers/sport-nutrition/carb-blends",
+              icon: Heart,
+            },
+            {
+              name: "Other Support",
+              href: "/best-sellers/sport-nutrition/other-support",
+              icon: Flame,
+            },
+            {
+              name: "Casein Protein",
+              href: "/best-sellers/sport-nutrition/casein-protein",
+              icon: Tag,
+            },
           ],
         },
-        // ... (other categories remain the same)
+        {
+          name: "Health Nutrition",
+          subItems: [
+            {
+              name: "Protein Powder",
+              href: "/best-sellers/health-nutrition/protein-powder",
+              icon: Tag,
+            },
+            {
+              name: "Whey Protein",
+              href: "/best-sellers/health-nutrition/whey-protein",
+              icon: Zap,
+            },
+            {
+              name: "Whey Protein Isolate",
+              href: "/best-sellers/health-nutrition/whey-protein-isolate",
+              icon: Heart,
+            },
+            {
+              name: "Mass Gainer",
+              href: "/best-sellers/health-nutrition/mass-gainer",
+              icon: Flame,
+            },
+            {
+              name: "BCAA",
+              href: "/best-sellers/health-nutrition/bcaa",
+              icon: Heart,
+            },
+            {
+              name: "Fat Burners",
+              href: "/best-sellers/health-nutrition/fat-burners",
+              icon: Zap,
+            },
+            {
+              name: "Pre Workout",
+              href: "/best-sellers/health-nutrition/pre-workout",
+              icon: Flame,
+            },
+            {
+              name: "Creatine",
+              href: "/best-sellers/health-nutrition/creatine",
+              icon: Heart,
+            },
+            {
+              name: "Protein Bars",
+              href: "/best-sellers/health-nutrition/protein-bars",
+              icon: Tag,
+            },
+            {
+              name: "Weight Gainer",
+              href: "/best-sellers/health-nutrition/weight-gainer",
+              icon: Zap,
+            },
+            {
+              name: "Carb Blends",
+              href: "/best-sellers/health-nutrition/carb-blends",
+              icon: Heart,
+            },
+            {
+              name: "Other Support",
+              href: "/best-sellers/health-nutrition/other-support",
+              icon: Flame,
+            },
+            {
+              name: "Casein Protein",
+              href: "/best-sellers/health-nutrition/casein-protein",
+              icon: Tag,
+            },
+          ],
+        },
+        {
+          name: "Fitness",
+          subItems: [
+            {
+              name: "Protein Powder",
+              href: "/best-sellers/fitness/protein-powder",
+              icon: Tag,
+            },
+            {
+              name: "Whey Protein",
+              href: "/best-sellers/fitness/whey-protein",
+              icon: Zap,
+            },
+            {
+              name: "Whey Protein Isolate",
+              href: "/best-sellers/fitness/whey-protein-isolate",
+              icon: Heart,
+            },
+            {
+              name: "Mass Gainer",
+              href: "/best-sellers/fitness/mass-gainer",
+              icon: Flame,
+            },
+            { name: "BCAA", href: "/best-sellers/fitness/bcaa", icon: Heart },
+            {
+              name: "Fat Burners",
+              href: "/best-sellers/fitness/fat-burners",
+              icon: Zap,
+            },
+            {
+              name: "Pre Workout",
+              href: "/best-sellers/fitness/pre-workout",
+              icon: Flame,
+            },
+            {
+              name: "Creatine",
+              href: "/best-sellers/fitness/creatine",
+              icon: Heart,
+            },
+            {
+              name: "Protein Bars",
+              href: "/best-sellers/fitness/protein-bars",
+              icon: Tag,
+            },
+            {
+              name: "Weight Gainer",
+              href: "/best-sellers/fitness/weight-gainer",
+              icon: Zap,
+            },
+            {
+              name: "Carb Blends",
+              href: "/best-sellers/fitness/carb-blends",
+              icon: Heart,
+            },
+            {
+              name: "Other Support",
+              href: "/best-sellers/fitness/other-support",
+              icon: Flame,
+            },
+            {
+              name: "Casein Protein",
+              href: "/best-sellers/fitness/casein-protein",
+              icon: Tag,
+            },
+          ],
+        },
+        {
+          name: "Wellness",
+          subItems: [
+            {
+              name: "Protein Powder",
+              href: "/best-sellers/wellness/protein-powder",
+              icon: Tag,
+            },
+            {
+              name: "Whey Protein",
+              href: "/best-sellers/wellness/whey-protein",
+              icon: Zap,
+            },
+            {
+              name: "Whey Protein Isolate",
+              href: "/best-sellers/wellness/whey-protein-isolate",
+              icon: Heart,
+            },
+            {
+              name: "Mass Gainer",
+              href: "/best-sellers/wellness/mass-gainer",
+              icon: Flame,
+            },
+            { name: "BCAA", href: "/best-sellers/wellness/bcaa", icon: Heart },
+            {
+              name: "Fat Burners",
+              href: "/best-sellers/wellness/fat-burners",
+              icon: Zap,
+            },
+            {
+              name: "Pre Workout",
+              href: "/best-sellers/wellness/pre-workout",
+              icon: Flame,
+            },
+            {
+              name: "Creatine",
+              href: "/best-sellers/wellness/creatine",
+              icon: Heart,
+            },
+            {
+              name: "Protein Bars",
+              href: "/best-sellers/wellness/protein-bars",
+              icon: Tag,
+            },
+            {
+              name: "Weight Gainer",
+              href: "/best-sellers/wellness/weight-gainer",
+              icon: Zap,
+            },
+            {
+              name: "Carb Blends",
+              href: "/best-sellers/wellness/carb-blends",
+              icon: Heart,
+            },
+            {
+              name: "Other Support",
+              href: "/best-sellers/wellness/other-support",
+              icon: Flame,
+            },
+            {
+              name: "Casein Protein",
+              href: "/best-sellers/wellness/casein-protein",
+              icon: Tag,
+            },
+          ],
+        },
       ],
     },
     Products: {
@@ -238,15 +493,7 @@ export default function Header() {
     },
     Blogs: {
       icon: Book,
-      items: [
-        { name: "Fitness Tips", href: "/blogs/fitness", icon: Flame },
-        { name: "Nutrition Guides", href: "/blogs/nutrition", icon: Heart },
-        // Add top 5 blogs as a sub-menu under a new category
-        {
-          name: "Top Blogs",
-          subItems: topBlogs, // Dynamically set top 5 blogs
-        },
-      ],
+      items: topBlogs,
     },
     Services: {
       icon: Zap,

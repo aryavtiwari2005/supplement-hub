@@ -11,7 +11,7 @@ import ProductForm from "@/components/admin/ProductForm";
 import CouponForm from "@/components/admin/CouponForm";
 import BlogTable from "@/components/admin/BlogTable";
 import BlogForm from "@/components/admin/BlogForm";
-import RichTextEditor from "@/components/RichTextEditor";
+import { useRouter } from "next/navigation"; // Import useRouter for redirection
 
 interface Coupon {
   id: string;
@@ -65,6 +65,9 @@ export default function AdminPanel() {
   const [showBlogForm, setShowBlogForm] = useState(false);
   const [editingProduct, setEditingProduct] = useState<Product | null>(null);
   const [editingBlog, setEditingBlog] = useState<Blog | null>(null);
+  const [isAuthenticated, setIsAuthenticated] = useState(false); // Track authentication status
+  const [authLoading, setAuthLoading] = useState(true); // Track auth check loading
+  const router = useRouter();
 
   const [productForm, setProductForm] = useState<ProductFormState>({
     name: "",
@@ -93,6 +96,24 @@ export default function AdminPanel() {
     image: null,
     imageUrl: null,
   });
+
+  // Check if user is authenticated
+  useEffect(() => {
+    const checkUser = async () => {
+      setAuthLoading(true);
+      const {
+        data: { user },
+      } = await supabase.auth.getUser();
+      if (!user) {
+        setIsAuthenticated(false);
+        router.push("/adminlogin");
+      } else {
+        setIsAuthenticated(true);
+      }
+      setAuthLoading(false);
+    };
+    checkUser();
+  }, [router]);
 
   const fetchData = async () => {
     setLoading(true);
@@ -126,8 +147,10 @@ export default function AdminPanel() {
   };
 
   useEffect(() => {
-    fetchData();
-  }, []);
+    if (isAuthenticated) {
+      fetchData();
+    }
+  }, [isAuthenticated]);
 
   const handleProductSubmit = async (e: React.FormEvent) => {
     e.preventDefault();
@@ -342,7 +365,10 @@ export default function AdminPanel() {
   const deleteBlog = async (id: string) => {
     if (confirm("Are you sure you want to delete this blog?")) {
       try {
-        const { error } = await supabase.from("blogs_onescoop").delete().eq("id", id);
+        const { error } = await supabase
+          .from("blogs_onescoop")
+          .delete()
+          .eq("id", id);
         if (error) throw new Error(`Delete error: ${error.message}`);
         fetchData();
       } catch (err: any) {
@@ -352,10 +378,39 @@ export default function AdminPanel() {
     }
   };
 
+  // Handle logout
+  async function handleLogout() {
+    try {
+      const { error } = await supabase.auth.signOut();
+      if (error) throw error;
+      setIsAuthenticated(false);
+      router.push("/adminlogin");
+    } catch (error) {
+      console.error("Error logging out:", error);
+      setError("Failed to logout");
+    }
+  }
+
   const containerVariants = {
     initial: { opacity: 0 },
     animate: { opacity: 1, transition: { duration: 0.5 } },
   };
+
+  if (authLoading) {
+    return (
+      <div className="min-h-screen flex items-center justify-center">
+        <p className="text-gray-600">Checking authentication...</p>
+      </div>
+    );
+  }
+
+  if (!isAuthenticated) {
+    return (
+      <div className="min-h-screen flex items-center justify-center">
+        <p className="text-gray-600">Redirecting to login...</p>
+      </div>
+    );
+  }
 
   return (
     <motion.div
@@ -364,7 +419,15 @@ export default function AdminPanel() {
       animate="animate"
       className="container mx-auto p-6 bg-gray-100 min-h-screen"
     >
-      <h1 className="text-3xl font-bold mb-8 text-gray-800">Admin Dashboard</h1>
+      <div className="flex justify-between items-center mb-8">
+        <h1 className="text-3xl font-bold text-gray-800">Admin Dashboard</h1>
+        <button
+          onClick={handleLogout}
+          className="px-4 py-2 text-white bg-red-600 rounded-md hover:bg-red-700"
+        >
+          Logout
+        </button>
+      </div>
 
       <TabNavigation activeTab={activeTab} setActiveTab={setActiveTab} />
 
