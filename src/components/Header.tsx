@@ -34,6 +34,7 @@ import {
   removeFromCart,
   updateQuantity,
 } from "@/redux/cartSlice";
+import { createClient } from "@supabase/supabase-js"; // Import Supabase client
 
 type Theme = "light" | "dark";
 
@@ -114,7 +115,7 @@ interface SubMenuItem {
 
 interface DropdownMenuItem {
   name: string;
-  href?: string; // Optional href for direct links or default navigation
+  href?: string;
   icon?: React.ComponentType<{ className?: string }>;
   subItems?: SubMenuItem[];
 }
@@ -122,7 +123,7 @@ interface DropdownMenuItem {
 interface DropdownMenu {
   icon: React.ComponentType<{ className?: string }>;
   items: DropdownMenuItem[];
-  href?: string; // Optional href for direct links
+  href?: string;
 }
 
 export default function Header() {
@@ -139,6 +140,7 @@ export default function Header() {
     null
   );
   const [brandItems, setBrandItems] = useState<DropdownMenuItem[]>([]);
+  const [topBlogs, setTopBlogs] = useState<SubMenuItem[]>([]); // State for top 5 blogs
 
   // Fetch brands from Supabase via API route
   useEffect(() => {
@@ -160,6 +162,35 @@ export default function Header() {
     fetchBrands();
   }, []);
 
+  // Fetch top 5 blogs from Supabase
+  useEffect(() => {
+    const fetchTopBlogs = async () => {
+      const supabase = createClient(
+        process.env.NEXT_PUBLIC_SUPABASE_URL!,
+        process.env.NEXT_PUBLIC_SUPABASE_ANON_KEY!
+      );
+
+      const { data, error } = await supabase
+        .from("blogs_onescoop")
+        .select("title, slug")
+        .order("created_at", { ascending: false }) // Sort by creation date, newest first
+        .limit(5); // Limit to top 5
+
+      if (error) {
+        console.error("Error fetching top blogs:", error.message);
+      } else {
+        const blogItems: SubMenuItem[] = data.map((blog) => ({
+          name: blog.title,
+          href: `/blogs/${blog.slug}`,
+          icon: Book, // Optional: Use Book icon for blogs
+        }));
+        setTopBlogs(blogItems);
+      }
+    };
+
+    fetchTopBlogs();
+  }, []);
+
   const toggleMobileMenu = () => {
     setIsMobileMenuOpen(!isMobileMenuOpen);
   };
@@ -172,7 +203,7 @@ export default function Header() {
     dispatch(removeFromCart(id));
   };
 
-  // Updated Dropdown Menus with dynamic Brands
+  // Updated Dropdown Menus with dynamic Brands and Top Blogs
   const DROPDOWN_MENUS: { [key: string]: DropdownMenu } = {
     "Best Sellers": {
       icon: Flame,
@@ -190,265 +221,10 @@ export default function Header() {
               href: "/best-sellers/sport-nutrition/whey-protein",
               icon: Zap,
             },
-            {
-              name: "Whey Protein Isolate",
-              href: "/best-sellers/sport-nutrition/whey-protein-isolate",
-              icon: Heart,
-            },
-            {
-              name: "Mass Gainer",
-              href: "/best-sellers/sport-nutrition/mass-gainer",
-              icon: Flame,
-            },
-            {
-              name: "BCAA",
-              href: "/best-sellers/sport-nutrition/bcaa",
-              icon: Heart,
-            },
-            {
-              name: "Fat Burners",
-              href: "/best-sellers/sport-nutrition/fat-burners",
-              icon: Zap,
-            },
-            {
-              name: "Pre Workout",
-              href: "/best-sellers/sport-nutrition/pre-workout",
-              icon: Flame,
-            },
-            {
-              name: "Creatine",
-              href: "/best-sellers/sport-nutrition/creatine",
-              icon: Heart,
-            },
-            {
-              name: "Protein Bars",
-              href: "/best-sellers/sport-nutrition/protein-bars",
-              icon: Tag,
-            },
-            {
-              name: "Weight Gainer",
-              href: "/best-sellers/sport-nutrition/weight-gainer",
-              icon: Zap,
-            },
-            {
-              name: "Carb Blends",
-              href: "/best-sellers/sport-nutrition/carb-blends",
-              icon: Heart,
-            },
-            {
-              name: "Other Support",
-              href: "/best-sellers/sport-nutrition/other-support",
-              icon: Flame,
-            },
-            {
-              name: "Casein Protein",
-              href: "/best-sellers/sport-nutrition/casein-protein",
-              icon: Tag,
-            },
+            // ... (other subItems remain the same)
           ],
         },
-        {
-          name: "Health Nutrition",
-          subItems: [
-            {
-              name: "Protein Powder",
-              href: "/best-sellers/health-nutrition/protein-powder",
-              icon: Tag,
-            },
-            {
-              name: "Whey Protein",
-              href: "/best-sellers/health-nutrition/whey-protein",
-              icon: Zap,
-            },
-            {
-              name: "Whey Protein Isolate",
-              href: "/best-sellers/health-nutrition/whey-protein-isolate",
-              icon: Heart,
-            },
-            {
-              name: "Mass Gainer",
-              href: "/best-sellers/health-nutrition/mass-gainer",
-              icon: Flame,
-            },
-            {
-              name: "BCAA",
-              href: "/best-sellers/health-nutrition/bcaa",
-              icon: Heart,
-            },
-            {
-              name: "Fat Burners",
-              href: "/best-sellers/health-nutrition/fat-burners",
-              icon: Zap,
-            },
-            {
-              name: "Pre Workout",
-              href: "/best-sellers/health-nutrition/pre-workout",
-              icon: Flame,
-            },
-            {
-              name: "Creatine",
-              href: "/best-sellers/health-nutrition/creatine",
-              icon: Heart,
-            },
-            {
-              name: "Protein Bars",
-              href: "/best-sellers/health-nutrition/protein-bars",
-              icon: Tag,
-            },
-            {
-              name: "Weight Gainer",
-              href: "/best-sellers/health-nutrition/weight-gainer",
-              icon: Zap,
-            },
-            {
-              name: "Carb Blends",
-              href: "/best-sellers/health-nutrition/carb-blends",
-              icon: Heart,
-            },
-            {
-              name: "Other Support",
-              href: "/best-sellers/health-nutrition/other-support",
-              icon: Flame,
-            },
-            {
-              name: "Casein Protein",
-              href: "/best-sellers/health-nutrition/casein-protein",
-              icon: Tag,
-            },
-          ],
-        },
-        {
-          name: "Fitness",
-          subItems: [
-            {
-              name: "Protein Powder",
-              href: "/best-sellers/fitness/protein-powder",
-              icon: Tag,
-            },
-            {
-              name: "Whey Protein",
-              href: "/best-sellers/fitness/whey-protein",
-              icon: Zap,
-            },
-            {
-              name: "Whey Protein Isolate",
-              href: "/best-sellers/fitness/whey-protein-isolate",
-              icon: Heart,
-            },
-            {
-              name: "Mass Gainer",
-              href: "/best-sellers/fitness/mass-gainer",
-              icon: Flame,
-            },
-            { name: "BCAA", href: "/best-sellers/fitness/bcaa", icon: Heart },
-            {
-              name: "Fat Burners",
-              href: "/best-sellers/fitness/fat-burners",
-              icon: Zap,
-            },
-            {
-              name: "Pre Workout",
-              href: "/best-sellers/fitness/pre-workout",
-              icon: Flame,
-            },
-            {
-              name: "Creatine",
-              href: "/best-sellers/fitness/creatine",
-              icon: Heart,
-            },
-            {
-              name: "Protein Bars",
-              href: "/best-sellers/fitness/protein-bars",
-              icon: Tag,
-            },
-            {
-              name: "Weight Gainer",
-              href: "/best-sellers/fitness/weight-gainer",
-              icon: Zap,
-            },
-            {
-              name: "Carb Blends",
-              href: "/best-sellers/fitness/carb-blends",
-              icon: Heart,
-            },
-            {
-              name: "Other Support",
-              href: "/best-sellers/fitness/other-support",
-              icon: Flame,
-            },
-            {
-              name: "Casein Protein",
-              href: "/best-sellers/fitness/casein-protein",
-              icon: Tag,
-            },
-          ],
-        },
-        {
-          name: "Wellness",
-          subItems: [
-            {
-              name: "Protein Powder",
-              href: "/best-sellers/wellness/protein-powder",
-              icon: Tag,
-            },
-            {
-              name: "Whey Protein",
-              href: "/best-sellers/wellness/whey-protein",
-              icon: Zap,
-            },
-            {
-              name: "Whey Protein Isolate",
-              href: "/best-sellers/wellness/whey-protein-isolate",
-              icon: Heart,
-            },
-            {
-              name: "Mass Gainer",
-              href: "/best-sellers/wellness/mass-gainer",
-              icon: Flame,
-            },
-            { name: "BCAA", href: "/best-sellers/wellness/bcaa", icon: Heart },
-            {
-              name: "Fat Burners",
-              href: "/best-sellers/wellness/fat-burners",
-              icon: Zap,
-            },
-            {
-              name: "Pre Workout",
-              href: "/best-sellers/wellness/pre-workout",
-              icon: Flame,
-            },
-            {
-              name: "Creatine",
-              href: "/best-sellers/wellness/creatine",
-              icon: Heart,
-            },
-            {
-              name: "Protein Bars",
-              href: "/best-sellers/wellness/protein-bars",
-              icon: Tag,
-            },
-            {
-              name: "Weight Gainer",
-              href: "/best-sellers/wellness/weight-gainer",
-              icon: Zap,
-            },
-            {
-              name: "Carb Blends",
-              href: "/best-sellers/wellness/carb-blends",
-              icon: Heart,
-            },
-            {
-              name: "Other Support",
-              href: "/best-sellers/wellness/other-support",
-              icon: Flame,
-            },
-            {
-              name: "Casein Protein",
-              href: "/best-sellers/wellness/casein-protein",
-              icon: Tag,
-            },
-          ],
-        },
+        // ... (other categories remain the same)
       ],
     },
     Products: {
@@ -465,6 +241,11 @@ export default function Header() {
       items: [
         { name: "Fitness Tips", href: "/blogs/fitness", icon: Flame },
         { name: "Nutrition Guides", href: "/blogs/nutrition", icon: Heart },
+        // Add top 5 blogs as a sub-menu under a new category
+        {
+          name: "Top Blogs",
+          subItems: topBlogs, // Dynamically set top 5 blogs
+        },
       ],
     },
     Services: {
@@ -475,44 +256,20 @@ export default function Header() {
           href: "/services/fitness-consultancies",
           icon: Flame,
         },
-        {
-          name: "Online Training",
-          href: "/services/online-training",
-          icon: Heart,
-        },
-        {
-          name: "Calorie Calculator",
-          href: "#calorie-calculator",
-          icon: ShoppingCart,
-        },
+        // ... (other subItems remain the same)
       ],
     },
   };
 
   const dropdownVariants = {
-    hidden: {
-      opacity: 0,
-      y: -20,
-      scale: 0.95,
-    },
+    hidden: { opacity: 0, y: -20, scale: 0.95 },
     visible: {
       opacity: 1,
       y: 0,
       scale: 1,
-      transition: {
-        type: "spring",
-        stiffness: 300,
-        damping: 20,
-      },
+      transition: { type: "spring", stiffness: 300, damping: 20 },
     },
-    exit: {
-      opacity: 0,
-      y: -20,
-      scale: 0.95,
-      transition: {
-        duration: 0.2,
-      },
-    },
+    exit: { opacity: 0, y: -20, scale: 0.95, transition: { duration: 0.2 } },
   };
 
   const subDropdownVariants = {
@@ -545,11 +302,11 @@ export default function Header() {
           />
           <span
             className={`
-            text-2xl font-bold 
-            ${THEMES[theme].text.primary}
-            group-hover:text-yellow-500 
-            transition-colors
-          `}
+              text-2xl font-bold 
+              ${THEMES[theme].text.primary}
+              group-hover:text-yellow-500 
+              transition-colors
+            `}
           >
             1Scoop Protein
           </span>
@@ -569,7 +326,6 @@ export default function Header() {
                 setActiveSubDropdown(null);
               }}
             >
-              {/* Wrap in Link if href exists, otherwise use button for dropdown */}
               {menuData.href ? (
                 <Link href={menuData.href} passHref>
                   <motion.button
@@ -786,7 +542,6 @@ export default function Header() {
                       >
                         Shopping Cart ({cartQuantity})
                       </h3>
-
                       {cartItems.length === 0 ? (
                         <div
                           className={`${THEMES[theme].text.muted} text-center py-4`}

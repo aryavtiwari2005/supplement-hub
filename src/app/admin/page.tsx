@@ -270,7 +270,7 @@ export default function AdminPanel() {
           .update(blogData)
           .eq("id", editingBlog.id);
       } else {
-        result = await supabase.from("blogs").insert([blogData]);
+        result = await supabase.from("blogs_onescoop").insert([blogData]);
       }
 
       if (result.error) {
@@ -342,7 +342,7 @@ export default function AdminPanel() {
   const deleteBlog = async (id: string) => {
     if (confirm("Are you sure you want to delete this blog?")) {
       try {
-        const { error } = await supabase.from("blogs").delete().eq("id", id);
+        const { error } = await supabase.from("blogs_onescoop").delete().eq("id", id);
         if (error) throw new Error(`Delete error: ${error.message}`);
         fetchData();
       } catch (err: any) {
