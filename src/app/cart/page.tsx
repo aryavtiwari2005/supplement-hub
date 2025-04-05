@@ -9,7 +9,18 @@ import {
 } from "@/redux/cartSlice";
 import { cartService } from "@/services/cartService";
 import { useEffect, useState } from "react";
-import { X, Plus, Minus } from "lucide-react";
+import {
+  X,
+  Plus,
+  Minus,
+  ArrowLeft,
+  ArrowRight,
+  CreditCard,
+  Truck,
+  Home,
+  MapPin,
+  Phone,
+} from "lucide-react";
 import Link from "next/link";
 import { useRouter } from "next/navigation";
 import Image from "next/image";
@@ -45,25 +56,61 @@ const THEMES = {
   },
 };
 
+// Define types
+type User = {
+  id: number;
+  name: string;
+  email: string;
+  phone: string;
+  address?: UserAddress;
+  paymentPreference?: string;
+};
+
+type UserAddress = {
+  street: string;
+  city: string;
+  state: string;
+  zipCode: string;
+};
+
+type CartItem = {
+  id: number;
+  name: string;
+  price: number;
+  quantity: number;
+  image?: string;
+};
+
+type CouponType = {
+  code: string;
+  discount_percentage: number;
+};
+
 const CartPage = () => {
   const [theme] = useState<"light" | "dark">("light");
   const dispatch = useDispatch();
   const cartItems = useSelector(selectCartItems);
-  const [isCheckingOut, setIsCheckingOut] = useState(false);
+  const [isProcessing, setIsProcessing] = useState(false);
   const [errorMessage, setErrorMessage] = useState("");
   const [successMessage, setSuccessMessage] = useState("");
   const router = useRouter();
   const [isLoading, setIsLoading] = useState(true);
-  const [user, setUser] = useState<{
-    id: number;
-    name: string;
-    email: string;
-  } | null>(null);
+  const [user, setUser] = useState<User | null>(null);
   const [couponCode, setCouponCode] = useState("");
-  const [appliedCoupon, setAppliedCoupon] = useState<{
-    code: string;
-    discount_percentage: number;
-  } | null>(null);
+  const [appliedCoupon, setAppliedCoupon] = useState<CouponType | null>(null);
+
+  // New states for multi-step checkout
+  const [checkoutStep, setCheckoutStep] = useState<1 | 2 | 3>(1);
+  const [address, setAddress] = useState<UserAddress>({
+    street: "",
+    city: "",
+    state: "",
+    zipCode: "",
+  });
+  const [paymentMethod, setPaymentMethod] = useState<"phonePe" | "cod">(
+    "phonePe"
+  );
+  const [loadingSavedAddress, setLoadingSavedAddress] = useState(false);
 
   const fetchCartData = async (userId: number) => {
     try {
@@ -72,6 +119,29 @@ const CartPage = () => {
     } catch (error) {
       console.error("Error fetching cart:", error);
       setErrorMessage("Failed to load cart from server. Showing local cart.");
+    }
+  };
+
+  const fetchUserAddress = async (userId: number) => {
+    setLoadingSavedAddress(true);
+    try {
+      const response = await fetch(`/api/user/address/${userId}`, {
+        credentials: "include",
+      });
+
+      if (response.ok) {
+        const data = await response.json();
+        if (data.address) {
+          setAddress(data.address);
+        }
+        if (data.paymentPreference) {
+          setPaymentMethod(data.paymentPreference as "phonePe" | "cod");
+        }
+      }
+    } catch (error) {
+      console.error("Error fetching user address:", error);
+    } finally {
+      setLoadingSavedAddress(false);
     }
   };
 
@@ -97,6 +167,7 @@ const CartPage = () => {
 
         if (fetchedUser?.id) {
           await fetchCartData(fetchedUser.id);
+          await fetchUserAddress(fetchedUser.id);
         }
       } catch (error) {
         console.error("Failed to fetch user or cart:", error);
@@ -128,7 +199,15 @@ const CartPage = () => {
     const item = cartItems.find((i) => i.id === id);
     if (!item) return;
 
+    // Enforce maximum quantity of 10
+    if (item.quantity + delta > 10) {
+      setErrorMessage("Maximum quantity per item is 10");
+      return;
+    }
+
+    // Ensure minimum quantity is 1
     const newQuantity = Math.max(1, item.quantity + delta);
+
     try {
       dispatch(updateQuantity({ id, quantity: newQuantity }));
       await cartService.updateCartQuantity(user.id, id, newQuantity);
@@ -167,68 +246,109 @@ const CartPage = () => {
     }
   };
 
+  const handleAddressChange = (e: React.ChangeEvent<HTMLInputElement>) => {
+    const { name, value } = e.target;
+    setAddress((prev) => ({
+      ...prev,
+      [name]: value,
+    }));
+  };
+
+  const handleSaveAddress = async () => {
+    if (!user?.id) return;
+
+    // Validate address fields
+    const requiredFields = ["street", "city", "state", "zipCode"];
+    const missingFields = requiredFields.filter(
+      (field) => !address[field as keyof UserAddress]
+    );
+
+    if (missingFields.length > 0) {
+      setErrorMessage(
+        `Please fill in all address fields: ${missingFields.join(", ")}`
+      );
+      return;
+    }
+
+    setIsProcessing(true);
+
+    try {
+      const response = await fetch(`/api/user/address/${user.id}`, {
+        method: "POST",
+        headers: { "Content-Type": "application/json" },
+        body: JSON.stringify({ address }),
+        credentials: "include",
+      });
+
+      if (response.ok) {
+        setSuccessMessage("Address saved successfully");
+        setCheckoutStep(3);
+      } else {
+        setErrorMessage("Failed to save address");
+      }
+    } catch (error) {
+      console.error("Error saving address:", error);
+      setErrorMessage("An error occurred while saving your address");
+    } finally {
+      setIsProcessing(false);
+    }
+  };
+
   const handleCheckout = async () => {
     if (!user?.id) return setErrorMessage("Please log in to checkout.");
     if (!cartItems.length) return setErrorMessage("Your cart is empty!");
 
-    setIsCheckingOut(true);
+    setIsProcessing(true);
     setErrorMessage("");
     setSuccessMessage("");
 
     try {
-      const response = await fetch("/api/create-razorpay-order", {
+      // Validate address
+      if (
+        !address.street ||
+        !address.city ||
+        !address.state ||
+        !address.zipCode
+      ) {
+        throw new Error("Please provide a complete shipping address");
+      }
+
+      // Save payment preference (optional, kept from original)
+      await fetch(`/api/user/payment-preference/${user.id}`, {
         method: "POST",
         headers: { "Content-Type": "application/json" },
-        body: JSON.stringify({
-          cartItems,
-          userId: user.id,
-          couponCode: appliedCoupon?.code, // Pass coupon code if applied
-        }),
+        body: JSON.stringify({ paymentPreference: paymentMethod }),
         credentials: "include",
       });
 
-      if (!response.ok) throw new Error("Failed to create Razorpay order");
+      // Use cartService.checkout with all required arguments
+      const { orderId } = await cartService.checkout(
+        user.id,
+        cartItems,
+        address,
+        paymentMethod,
+        appliedCoupon?.code // Optional coupon code
+      );
 
-      const { orderId } = await response.json();
+      setSuccessMessage(
+        `Order placed successfully! Your order ID is ${orderId}`
+      );
+      dispatch(setCartItems([]));
+      setAppliedCoupon(null);
 
-      const script = document.createElement("script");
-      script.src = "https://checkout.razorpay.com/v1/checkout.js";
-      script.async = true;
-      document.body.appendChild(script);
-
-      script.onload = () => {
-        const options = {
-          key: process.env.NEXT_PUBLIC_RAZORPAY_KEY_ID!,
-          amount: calculateTotalWithDiscount() * 100, // Use discounted total
-          currency: "INR",
-          name: "Your Store Name",
-          description: "Payment for your order",
-          order_id: orderId,
-          handler: async (response: any) => {
-            await cartService.checkout(user.id, cartItems);
-            setSuccessMessage("Payment successful! Order placed.");
-            dispatch(setCartItems([]));
-            setAppliedCoupon(null); // Clear coupon after checkout
-          },
-          prefill: {
-            name: user.name,
-            email: user.email,
-            contact: "9999999999",
-          },
-          theme: { color: "#F37254" },
-          modal: {
-            ondismiss: () => setErrorMessage("Payment cancelled."),
-          },
-        };
-
-        const rzp = new (window as any).Razorpay(options);
-        rzp.open();
-      };
-    } catch (error) {
+      if (paymentMethod === "phonePe") {
+        // For PhonePe, redirect to payment gateway (assuming this is handled server-side in cartService.checkout)
+        // If a separate payment URL is needed, you'd need to adjust cartService.checkout to return it
+        setTimeout(() => router.push(`/payment/${orderId}`), 2000); // Example redirect
+      } else {
+        // For COD, redirect to orders page
+        setTimeout(() => router.push("/orders"), 2000);
+      }
+    } catch (error: any) {
       console.error("Checkout error:", error);
-      setErrorMessage("Checkout failed. Please try again.");
+      setErrorMessage(error.message || "Checkout failed. Please try again.");
     } finally {
-      setIsCheckingOut(false);
+      setIsProcessing(false);
     }
   };
 
@@ -236,12 +356,433 @@ const CartPage = () => {
     (sum, item) => sum + item.price * item.quantity,
     0
   );
+
   const calculateTotalWithDiscount = () => {
     if (!appliedCoupon) return subtotal;
     const discount = subtotal * (appliedCoupon.discount_percentage / 100);
-    return Math.max(0, subtotal - discount); // Ensure total doesn't go negative
+    return Math.max(0, subtotal - discount);
   };
+
   const total = calculateTotalWithDiscount();
+
+  // Renders the step indicator
+  const renderStepIndicator = () => {
+    return (
+      <div className="flex w-full mb-8 items-center">
+        <div
+          className={`flex flex-col items-center w-1/3 ${
+            checkoutStep >= 1 ? "text-yellow-500" : THEMES[theme].text.muted
+          }`}
+        >
+          <div
+            className={`w-8 h-8 flex items-center justify-center rounded-full ${
+              checkoutStep >= 1
+                ? "bg-yellow-500 text-white"
+                : `bg-gray-200 ${THEMES[theme].text.muted}`
+            }`}
+          >
+            1
+          </div>
+          <span className="text-sm mt-1">Cart</span>
+        </div>
+        <div
+          className={`h-1 w-full ${
+            checkoutStep >= 2 ? "bg-yellow-500" : "bg-gray-200"
+          }`}
+        ></div>
+        <div
+          className={`flex flex-col items-center w-1/3 ${
+            checkoutStep >= 2 ? "text-yellow-500" : THEMES[theme].text.muted
+          }`}
+        >
+          <div
+            className={`w-8 h-8 flex items-center justify-center rounded-full ${
+              checkoutStep >= 2
+                ? "bg-yellow-500 text-white"
+                : `bg-gray-200 ${THEMES[theme].text.muted}`
+            }`}
+          >
+            2
+          </div>
+          <span className="text-sm mt-1">Address</span>
+        </div>
+        <div
+          className={`h-1 w-full ${
+            checkoutStep >= 3 ? "bg-yellow-500" : "bg-gray-200"
+          }`}
+        ></div>
+        <div
+          className={`flex flex-col items-center w-1/3 ${
+            checkoutStep >= 3 ? "text-yellow-500" : THEMES[theme].text.muted
+          }`}
+        >
+          <div
+            className={`w-8 h-8 flex items-center justify-center rounded-full ${
+              checkoutStep >= 3
+                ? "bg-yellow-500 text-white"
+                : `bg-gray-200 ${THEMES[theme].text.muted}`
+            }`}
+          >
+            3
+          </div>
+          <span className="text-sm mt-1">Payment</span>
+        </div>
+      </div>
+    );
+  };
+
+  // Renders the cart items (Step 1)
+  const renderCartItems = () => {
+    return (
+      <div className="space-y-4">
+        {cartItems.map((item) => (
+          <div
+            key={item.id}
+            className={`flex items-center justify-between ${THEMES[theme].border} border-b py-6`}
+          >
+            <div className="flex items-center space-x-4">
+              <div className="relative w-20 h-20">
+                <Image
+                  src={item.image || "/placeholder-image.jpg"}
+                  unoptimized={true}
+                  alt={item.name}
+                  fill
+                  sizes="80px"
+                  className="object-cover rounded"
+                  onError={(e) =>
+                    (e.currentTarget.src = "/placeholder-image.jpg")
+                  }
+                />
+              </div>
+              <div className="flex-1 py-2">
+                <h3 className={`font-semibold ${THEMES[theme].text.primary}`}>
+                  {item.name}
+                </h3>
+                <p className={THEMES[theme].text.primary}>
+                  ${item.price.toFixed(2)}
+                </p>
+              </div>
+            </div>
+            <div className="flex items-center space-x-4">
+              <div
+                className={`flex items-center space-x-2 ${THEMES[theme].background.secondary} ${THEMES[theme].border} rounded`}
+              >
+                <button
+                  onClick={() => handleQuantityChange(item.id, -1)}
+                  className={`p-2 ${THEMES[theme].text.primary} hover:${THEMES[theme].dropdown.hover}`}
+                  disabled={item.quantity <= 1}
+                >
+                  <Minus className="w-5 h-5" />
+                </button>
+                <span className={`px-3 ${THEMES[theme].text.primary}`}>
+                  {item.quantity}
+                </span>
+                <button
+                  onClick={() => handleQuantityChange(item.id, 1)}
+                  className={`p-2 ${THEMES[theme].text.primary} hover:${THEMES[theme].dropdown.hover}`}
+                  disabled={item.quantity >= 10}
+                >
+                  <Plus className="w-5 h-5" />
+                </button>
+              </div>
+              <button
+                onClick={() => handleRemoveItem(item.id)}
+                className="text-red-500 hover:text-red-600"
+              >
+                <X className="w-6 h-6" />
+              </button>
+            </div>
+          </div>
+        ))}
+
+        {/* Coupon Code Section */}
+        <div className="mt-6 flex items-center space-x-4">
+          <input
+            type="text"
+            value={couponCode}
+            onChange={(e) => setCouponCode(e.target.value)}
+            placeholder="Enter coupon code"
+            className={`p-2 rounded ${THEMES[theme].border} ${THEMES[theme].background.secondary} ${THEMES[theme].text.primary} w-64`}
+          />
+          <button
+            onClick={handleApplyCoupon}
+            className={`px-4 py-2 rounded ${
+              theme === "light"
+                ? "bg-yellow-500 text-black hover:bg-yellow-600"
+                : "bg-yellow-600 text-white hover:bg-yellow-700"
+            }`}
+          >
+            Apply Coupon
+          </button>
+        </div>
+
+        {/* Total Section */}
+        <div className="text-right mt-6">
+          <p className={`text-lg ${THEMES[theme].text.secondary}`}>
+            Subtotal: ${subtotal.toFixed(2)}
+          </p>
+          {appliedCoupon && (
+            <p className={`text-lg ${THEMES[theme].text.secondary}`}>
+              Discount ({appliedCoupon.discount_percentage}%): -$
+              {(subtotal - total).toFixed(2)}
+            </p>
+          )}
+          <p className={`text-xl font-bold ${THEMES[theme].text.primary}`}>
+            Total: ${total.toFixed(2)}
+          </p>
+          <button
+            onClick={() => setCheckoutStep(2)}
+            disabled={cartItems.length === 0}
+            className={`mt-4 px-6 py-2 rounded ${
+              theme === "light"
+                ? "bg-yellow-500 text-black hover:bg-yellow-600"
+                : "bg-yellow-600 text-white hover:bg-yellow-700"
+            } ${cartItems.length === 0 ? "opacity-50 cursor-not-allowed" : ""}`}
+          >
+            Proceed to Delivery{" "}
+            <ArrowRight className="inline-block ml-2 w-4 h-4" />
+          </button>
+        </div>
+      </div>
+    );
+  };
+
+  // Renders the delivery address form (Step 2)
+  const renderDeliveryAddress = () => {
+    return (
+      <div
+        className={`p-4 rounded-lg ${THEMES[theme].background.secondary} ${THEMES[theme].border} border`}
+      >
+        <h2 className={`text-xl font-bold mb-4 ${THEMES[theme].text.primary}`}>
+          <MapPin className="inline-block mr-2 mb-1" /> Delivery Address
+        </h2>
+
+        {loadingSavedAddress ? (
+          <div className="flex justify-center py-6">
+            <p className={THEMES[theme].text.muted}>Loading saved address...</p>
+          </div>
+        ) : (
+          <div className="space-y-4">
+            <div>
+              <label
+                className={`block mb-1 ${THEMES[theme].text.secondary}`}
+                htmlFor="street"
+              >
+                Street Address
+              </label>
+              <input
+                type="text"
+                id="street"
+                name="street"
+                value={address.street}
+                onChange={handleAddressChange}
+                placeholder="123 Main St, Apt 4B"
+                className={`w-full p-2 rounded ${THEMES[theme].border} ${THEMES[theme].background.primary} ${THEMES[theme].text.primary}`}
+                required
+              />
+            </div>
+
+            <div className="grid grid-cols-2 gap-4">
+              <div>
+                <label
+                  className={`block mb-1 ${THEMES[theme].text.secondary}`}
+                  htmlFor="city"
+                >
+                  City
+                </label>
+                <input
+                  type="text"
+                  id="city"
+                  name="city"
+                  value={address.city}
+                  onChange={handleAddressChange}
+                  placeholder="Mumbai"
+                  className={`w-full p-2 rounded ${THEMES[theme].border} ${THEMES[theme].background.primary} ${THEMES[theme].text.primary}`}
+                  required
+                />
+              </div>
+
+              <div>
+                <label
+                  className={`block mb-1 ${THEMES[theme].text.secondary}`}
+                  htmlFor="state"
+                >
+                  State
+                </label>
+                <input
+                  type="text"
+                  id="state"
+                  name="state"
+                  value={address.state}
+                  onChange={handleAddressChange}
+                  placeholder="Maharashtra"
+                  className={`w-full p-2 rounded ${THEMES[theme].border} ${THEMES[theme].background.primary} ${THEMES[theme].text.primary}`}
+                  required
+                />
+              </div>
+            </div>
+
+            <div>
+              <label
+                className={`block mb-1 ${THEMES[theme].text.secondary}`}
+                htmlFor="zipCode"
+              >
+                PIN Code
+              </label>
+              <input
+                type="text"
+                id="zipCode"
+                name="zipCode"
+                value={address.zipCode}
+                onChange={handleAddressChange}
+                placeholder="400001"
+                className={`w-full p-2 rounded ${THEMES[theme].border} ${THEMES[theme].background.primary} ${THEMES[theme].text.primary}`}
+                required
+              />
+            </div>
+
+            <div className="flex justify-between pt-4">
+              <button
+                onClick={() => setCheckoutStep(1)}
+                className={`px-4 py-2 rounded ${THEMES[theme].border} ${THEMES[theme].background.primary} ${THEMES[theme].text.primary} hover:${THEMES[theme].dropdown.hover}`}
+              >
+                <ArrowLeft className="inline-block mr-2 w-4 h-4" /> Back to Cart
+              </button>
+
+              <button
+                onClick={handleSaveAddress}
+                disabled={isProcessing}
+                className={`px-6 py-2 rounded ${
+                  theme === "light"
+                    ? "bg-yellow-500 text-black hover:bg-yellow-600"
+                    : "bg-yellow-600 text-white hover:bg-yellow-700"
+                } ${isProcessing ? "opacity-50 cursor-not-allowed" : ""}`}
+              >
+                {isProcessing ? "Saving..." : "Continue to Payment"}{" "}
+                <ArrowRight className="inline-block ml-2 w-4 h-4" />
+              </button>
+            </div>
+          </div>
+        )}
+      </div>
+    );
+  };
+
+  // Renders the payment method selection (Step 3)
+  const renderPaymentMethod = () => {
+    return (
+      <div
+        className={`p-4 rounded-lg ${THEMES[theme].background.secondary} ${THEMES[theme].border} border`}
+      >
+        <h2 className={`text-xl font-bold mb-4 ${THEMES[theme].text.primary}`}>
+          <CreditCard className="inline-block mr-2 mb-1" /> Payment Method
+        </h2>
+
+        <div className="space-y-4">
+          <div
+            className={`p-4 rounded-lg ${
+              THEMES[theme].border
+            } border cursor-pointer ${
+              paymentMethod === "phonePe"
+                ? "border-yellow-500 bg-yellow-50"
+                : ""
+            }`}
+            onClick={() => setPaymentMethod("phonePe")}
+          >
+            <label className="flex items-center cursor-pointer">
+              <input
+                type="radio"
+                name="paymentMethod"
+                checked={paymentMethod === "phonePe"}
+                onChange={() => setPaymentMethod("phonePe")}
+                className="mr-2"
+              />
+              <div>
+                <span className={`font-medium ${THEMES[theme].text.primary}`}>
+                  PhonePe Gateway
+                </span>
+                <p className={`text-sm ${THEMES[theme].text.muted}`}>
+                  Pay securely using UPI, credit/debit cards, or netbanking
+                </p>
+              </div>
+            </label>
+          </div>
+
+          <div
+            className={`p-4 rounded-lg ${
+              THEMES[theme].border
+            } border cursor-pointer ${
+              paymentMethod === "cod" ? "border-yellow-500 bg-yellow-50" : ""
+            }`}
+            onClick={() => setPaymentMethod("cod")}
+          >
+            <label className="flex items-center cursor-pointer">
+              <input
+                type="radio"
+                name="paymentMethod"
+                checked={paymentMethod === "cod"}
+                onChange={() => setPaymentMethod("cod")}
+                className="mr-2"
+              />
+              <div>
+                <span className={`font-medium ${THEMES[theme].text.primary}`}>
+                  Cash on Delivery
+                </span>
+                <p className={`text-sm ${THEMES[theme].text.muted}`}>
+                  Pay with cash when your order is delivered
+                </p>
+              </div>
+            </label>
+          </div>
+
+          {/* Order Summary */}
+          <div className={`mt-6 p-4 rounded-lg ${THEMES[theme].border} border`}>
+            <h3 className={`font-medium mb-2 ${THEMES[theme].text.primary}`}>
+              Order Summary
+            </h3>
+            <div className={`text-sm ${THEMES[theme].text.secondary}`}>
+              <p>
+                Items: {cartItems.reduce((sum, item) => sum + item.quantity, 0)}
+              </p>
+              <p>Subtotal: ${subtotal.toFixed(2)}</p>
+              {appliedCoupon && (
+                <p>Discount: -${(subtotal - total).toFixed(2)}</p>
+              )}
+              <p className={`font-bold mt-2 ${THEMES[theme].text.primary}`}>
+                Total: ${total.toFixed(2)}
+              </p>
+            </div>
+          </div>
+
+          <div className="flex justify-between pt-4">
+            <button
+              onClick={() => setCheckoutStep(2)}
+              className={`px-4 py-2 rounded ${THEMES[theme].border} ${THEMES[theme].background.primary} ${THEMES[theme].text.primary} hover:${THEMES[theme].dropdown.hover}`}
+            >
+              <ArrowLeft className="inline-block mr-2 w-4 h-4" /> Back to
+              Address
+            </button>
+
+            <button
+              onClick={handleCheckout}
+              disabled={isProcessing}
+              className={`px-6 py-2 rounded ${
+                theme === "light"
+                  ? "bg-yellow-500 text-black hover:bg-yellow-600"
+                  : "bg-yellow-600 text-white hover:bg-yellow-700"
+              } ${isProcessing ? "opacity-50 cursor-not-allowed" : ""}`}
+            >
+              {isProcessing
+                ? "Processing..."
+                : paymentMethod === "cod"
+                ? "Place Order"
+                : "Proceed to Payment"}
+            </button>
+          </div>
+        </div>
+      </div>
+    );
+  };
 
   if (isLoading) {
     return (
@@ -281,141 +822,56 @@ const CartPage = () => {
     );
   }
 
+  if (cartItems.length === 0 && checkoutStep === 1) {
+    return (
+      <div
+        className={`container mx-auto p-4 ${THEMES[theme].background.primary}`}
+      >
+        <h1 className={`text-2xl font-bold mb-6 ${THEMES[theme].text.primary}`}>
+          Shopping Cart
+        </h1>
+        <div className="bg-yellow-50 border border-yellow-400 text-yellow-700 px-4 py-3 rounded mb-4">
+          Your cart is empty
+        </div>
+        <div className="text-center py-8">
+          <Link
+            href="/products"
+            className="px-5 py-2 bg-yellow-500 text-black rounded-md hover:bg-yellow-600"
+          >
+            Continue Shopping
+          </Link>
+        </div>
+      </div>
+    );
+  }
+
   return (
     <div
       className={`container mx-auto p-4 ${THEMES[theme].background.primary}`}
     >
       <h1 className={`text-2xl font-bold mb-6 ${THEMES[theme].text.primary}`}>
-        Shopping Cart
+        Checkout
       </h1>
+
+      {renderStepIndicator()}
+
       {errorMessage && (
         <div className="bg-red-100 border border-red-400 text-red-700 px-4 py-3 rounded mb-4">
           {errorMessage}
         </div>
       )}
+
       {successMessage && (
         <div className="bg-green-100 border border-green-400 text-green-700 px-4 py-3 rounded mb-4">
           {successMessage}
         </div>
       )}
-      {cartItems.length === 0 ? (
-        <div className={`text-center py-8 ${THEMES[theme].text.muted}`}>
-          <p>Your cart is empty</p>
-          <Link
-            href="/products"
-            className="text-yellow-500 hover:text-yellow-600"
-          >
-            Continue Shopping
-          </Link>
-        </div>
-      ) : (
-        <div className="space-y-4">
-          {cartItems.map((item) => (
-            <div
-              key={item.id}
-              className={`flex items-center justify-between ${THEMES[theme].border} border-b py-6`}
-            >
-              <div className="flex items-center space-x-4">
-                <div className="relative w-20 h-20">
-                  <Image
-                    src={item.image || "/placeholder-image.jpg"}
-                    unoptimized={true}
-                    alt={item.name}
-                    fill
-                    sizes="80px"
-                    className="object-cover rounded"
-                    onError={(e) =>
-                      (e.currentTarget.src = "/placeholder-image.jpg")
-                    }
-                  />
-                </div>
-                <div className="flex-1 py-2">
-                  <h3 className={`font-semibold ${THEMES[theme].text.primary}`}>
-                    {item.name}
-                  </h3>
-                  <p className={THEMES[theme].text.primary}>
-                    ${item.price.toFixed(2)}
-                  </p>
-                </div>
-              </div>
-              <div className="flex items-center space-x-4">
-                <div
-                  className={`flex items-center space-x-2 ${THEMES[theme].background.secondary} ${THEMES[theme].border} rounded`}
-                >
-                  <button
-                    onClick={() => handleQuantityChange(item.id, -1)}
-                    className={`p-2 ${THEMES[theme].text.primary} hover:${THEMES[theme].dropdown.hover}`}
-                    disabled={item.quantity <= 1}
-                  >
-                    <Minus className="w-5 h-5" />
-                  </button>
-                  <span className={`px-3 ${THEMES[theme].text.primary}`}>
-                    {item.quantity}
-                  </span>
-                  <button
-                    onClick={() => handleQuantityChange(item.id, 1)}
-                    className={`p-2 ${THEMES[theme].text.primary} hover:${THEMES[theme].dropdown.hover}`}
-                  >
-                    <Plus className="w-5 h-5" />
-                  </button>
-                </div>
-                <button
-                  onClick={() => handleRemoveItem(item.id)}
-                  className="text-red-500 hover:text-red-600"
-                >
-                  <X className="w-6 h-6" />
-                </button>
-              </div>
-            </div>
-          ))}
-          {/* Coupon Code Section */}
-          <div className="mt-6 flex items-center space-x-4">
-            <input
-              type="text"
-              value={couponCode}
-              onChange={(e) => setCouponCode(e.target.value)}
-              placeholder="Enter coupon code"
-              className={`p-2 rounded ${THEMES[theme].border} ${THEMES[theme].background.secondary} ${THEMES[theme].text.primary} w-64`}
-            />
-            <button
-              onClick={handleApplyCoupon}
-              className={`px-4 py-2 rounded ${
-                theme === "light"
-                  ? "bg-yellow-500 text-black hover:bg-yellow-600"
-                  : "bg-yellow-600 text-white hover:bg-yellow-700"
-              }`}
-            >
-              Apply Coupon
-            </button>
-          </div>
-          {/* Total Section */}
-          <div className="text-right mt-6">
-            <p className={`text-lg ${THEMES[theme].text.secondary}`}>
-              Subtotal: ${subtotal.toFixed(2)}
-            </p>
-            {appliedCoupon && (
-              <p className={`text-lg ${THEMES[theme].text.secondary}`}>
-                Discount ({appliedCoupon.discount_percentage}%): -$
-                {(subtotal - total).toFixed(2)}
-              </p>
-            )}
-            <p className={`text-xl font-bold ${THEMES[theme].text.primary}`}>
-              Total: ${total.toFixed(2)}
-            </p>
-            <button
-              onClick={handleCheckout}
-              disabled={isCheckingOut}
-              className={`mt-4 px-6 py-2 rounded ${
-                theme === "light"
-                  ? "bg-yellow-500 text-black hover:bg-yellow-600"
-                  : "bg-yellow-600 text-white hover:bg-yellow-700"
-              } ${isCheckingOut ? "opacity-50 cursor-not-allowed" : ""}`}
-            >
-              {isCheckingOut ? "Processing..." : "Proceed to Checkout"}
-            </button>
-          </div>
-        </div>
-      )}
+
+      <div className="mt-6">
+        {checkoutStep === 1 && renderCartItems()}
+        {checkoutStep === 2 && renderDeliveryAddress()}
+        {checkoutStep === 3 && renderPaymentMethod()}
+      </div>
     </div>
   );
 };

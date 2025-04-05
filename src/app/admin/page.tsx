@@ -11,6 +11,8 @@ import ProductForm from "@/components/admin/ProductForm";
 import CouponForm from "@/components/admin/CouponForm";
 import BlogTable from "@/components/admin/BlogTable";
 import BlogForm from "@/components/admin/BlogForm";
+import ConsultationTable from "@/components/admin/ConsultationTable";
+import OrderTable from "@/components/admin/OrderTable";
 import { useRouter } from "next/navigation"; // Import useRouter for redirection
 
 interface Coupon {
@@ -21,12 +23,25 @@ interface Coupon {
   expires_at?: string;
 }
 
+interface Consultation {
+  id: number;
+  name: string;
+  email: string;
+  phone: string;
+  fitness_goals: string;
+  status: string;
+  created_at: string;
+  contacted: boolean;
+}
+
 interface ProductFormState {
   name: string;
   brand: string;
   category: string;
   subcategory: string;
-  image: string;
+  image: File | null;
+  imageUrl: string | null; // For preview
+  imagePath: string; // For URL input
   price: string;
   originalPrice: string;
   discountPercentage: string;
@@ -51,15 +66,32 @@ interface BlogFormState {
   imageUrl: string | null;
 }
 
+interface Order {
+  order_id: string;
+  items: Array<{
+    id: number;
+    name: string;
+    image: string;
+    price: number;
+    quantity: number;
+  }>;
+  total: number;
+  status: string;
+  created_at: string;
+  user_id?: number;
+  user_email?: string;
+}
+
 export default function AdminPanel() {
   const [products, setProducts] = useState<Product[]>([]);
   const [coupons, setCoupons] = useState<Coupon[]>([]);
   const [blogs, setBlogs] = useState<Blog[]>([]);
   const [loading, setLoading] = useState(true);
   const [error, setError] = useState<string>("");
-  const [activeTab, setActiveTab] = useState<"products" | "coupons" | "blogs">(
-    "products"
-  );
+  const [activeTab, setActiveTab] = useState<
+    "products" | "coupons" | "blogs" | "orders" | "consultations"
+  >("products");
+  const [consultations, setConsultations] = useState<Consultation[]>([]);
   const [showProductForm, setShowProductForm] = useState(false);
   const [showCouponForm, setShowCouponForm] = useState(false);
   const [showBlogForm, setShowBlogForm] = useState(false);
@@ -67,6 +99,7 @@ export default function AdminPanel() {
   const [editingBlog, setEditingBlog] = useState<Blog | null>(null);
   const [isAuthenticated, setIsAuthenticated] = useState(false); // Track authentication status
   const [authLoading, setAuthLoading] = useState(true); // Track auth check loading
+  const [orders, setOrders] = useState<Order[]>([]);
   const router = useRouter();
 
   const [productForm, setProductForm] = useState<ProductFormState>({
@@ -74,7 +107,9 @@ export default function AdminPanel() {
     brand: "",
     category: "",
     subcategory: "",
-    image: "",
+    image: null,
+    imageUrl: null,
+    imagePath: "",
     price: "",
     originalPrice: "",
     discountPercentage: "",
@@ -138,11 +173,72 @@ export default function AdminPanel() {
         .order("created_at", { ascending: false });
       if (blogError) throw new Error(`Blog fetch error: ${blogError.message}`);
       setBlogs(blogData as Blog[]);
+
+      const { data: usersData, error: usersError } = await supabase
+        .from("users_onescoop")
+        .select("id, email, orders");
+      if (usersError)
+        throw new Error(`Users fetch error: ${usersError.message}`);
+      const allOrders = usersData.flatMap((user) =>
+        (user.orders || []).map((order: Order) => ({
+          ...order,
+          user_id: user.id,
+          user_email: user.email,
+        }))
+      );
+      setOrders(allOrders);
+
+      const { data: consultationData, error: consultationError } =
+        await supabase
+          .from("fitness_consultations")
+          .select("*")
+          .order("created_at", { ascending: false });
+
+      if (consultationError)
+        throw new Error(
+          `Consultation fetch error: ${consultationError.message}`
+        );
+      setConsultations(consultationData || []);
     } catch (err: any) {
       setError(err.message || "Failed to fetch data");
       console.error(err);
     } finally {
       setLoading(false);
+    }
+  };
+
+  const updateOrderStatus = async (
+    userId: number,
+    orderId: string,
+    newStatus: string
+  ) => {
+    try {
+      // Fetch the user's current orders
+      const { data: userData, error: fetchError } = await supabase
+        .from("users_onescoop")
+        .select("orders")
+        .eq("id", userId)
+        .single();
+
+      if (fetchError) throw new Error(`Fetch error: ${fetchError.message}`);
+
+      // Update the specific order's status
+      const updatedOrders = userData.orders.map((order: Order) =>
+        order.order_id === orderId ? { ...order, status: newStatus } : order
+      );
+
+      // Update the user's orders in the database
+      const { error: updateError } = await supabase
+        .from("users_onescoop")
+        .update({ orders: updatedOrders })
+        .eq("id", userId);
+
+      if (updateError) throw new Error(`Update error: ${updateError.message}`);
+
+      fetchData(); // Refresh the data
+    } catch (err: any) {
+      setError(err.message || "Failed to update order status");
+      console.error("Error updating order status:", err);
     }
   };
 
@@ -156,12 +252,48 @@ export default function AdminPanel() {
     e.preventDefault();
     setError("");
     try {
+      let finalImageUrl = "";
+
+      // Handle image upload
+      if (productForm.image) {
+        const fileExt = productForm.image.name.split(".").pop();
+        const fileName = `${Date.now()}.${fileExt}`;
+
+        const { data, error: uploadError } = await supabase.storage
+          .from("product-images")
+          .upload(fileName, productForm.image);
+
+        if (uploadError) {
+          throw new Error("Failed to upload image: " + uploadError.message);
+        }
+
+        // Get public URL
+        const { data: publicUrlData } = supabase.storage
+          .from("product-images")
+          .getPublicUrl(fileName);
+
+        finalImageUrl = publicUrlData.publicUrl;
+      }
+      // Handle direct URL
+      else if (productForm.imagePath) {
+        finalImageUrl = productForm.imagePath;
+      }
+      // Keep existing image if editing and no new image/URL provided
+      else if (editingProduct?.image) {
+        finalImageUrl = editingProduct.image;
+      }
+
+      // Validate required image
+      if (!finalImageUrl && !editingProduct?.image) {
+        throw new Error("Please provide either an image upload or URL");
+      }
+
       const productData = {
         name: productForm.name.trim(),
         brand: productForm.brand.trim(),
         category: productForm.category.trim(),
         subcategory: productForm.subcategory.trim(),
-        image: productForm.image.trim(),
+        image: finalImageUrl || editingProduct?.image || "",
         price: parseFloat(productForm.price),
         original_price: productForm.originalPrice
           ? parseFloat(productForm.originalPrice)
@@ -173,43 +305,50 @@ export default function AdminPanel() {
         description: productForm.description.trim() || null,
       };
 
-      if (isNaN(productData.price) || isNaN(productData.rating)) {
-        throw new Error("Price and Rating must be valid numbers.");
+      // Validation
+      if (isNaN(productData.price)) {
+        throw new Error("Price must be a valid number");
       }
       if (
-        productData.discount_percentage &&
-        (productData.discount_percentage < 0 ||
-          productData.discount_percentage > 100)
+        isNaN(productData.rating) ||
+        productData.rating < 0 ||
+        productData.rating > 5
       ) {
-        throw new Error("Discount percentage must be between 0 and 100.");
+        throw new Error("Rating must be between 0 and 5");
       }
 
       let result;
       if (editingProduct) {
+        // Update existing product
         result = await supabase
           .from("products")
           .update(productData)
           .eq("id", editingProduct.id);
       } else {
+        // Insert new product (don't include id)
         result = await supabase.from("products").insert([productData]);
       }
 
       if (result.error) {
-        throw new Error(`Insert/Update error: ${result.error.message}`);
+        throw new Error(`Database error: ${result.error.message}`);
       }
 
+      // Reset form
       setProductForm({
         name: "",
         brand: "",
         category: "",
         subcategory: "",
-        image: "",
+        image: null,
+        imageUrl: null,
+        imagePath: "",
         price: "",
         originalPrice: "",
         discountPercentage: "",
         rating: "",
         description: "",
       });
+
       setEditingProduct(null);
       setShowProductForm(false);
       fetchData();
@@ -336,7 +475,9 @@ export default function AdminPanel() {
       brand: product.brand || "",
       category: product.category || "",
       subcategory: product.subcategory || "",
-      image: product.image || "",
+      image: null,
+      imageUrl: product.image || null,
+      imagePath: product.image || "", // Set existing image URL
       price: product.price ? product.price.toString() : "0",
       originalPrice: product.originalPrice
         ? product.originalPrice.toString()
@@ -444,7 +585,9 @@ export default function AdminPanel() {
                 brand: "",
                 category: "",
                 subcategory: "",
-                image: "",
+                image: null,
+                imageUrl: null,
+                imagePath: "",
                 price: "",
                 originalPrice: "",
                 discountPercentage: "",
@@ -529,6 +672,38 @@ export default function AdminPanel() {
             />
           )}
         </>
+      )}
+
+      {activeTab === "orders" && !loading && !error && (
+        <OrderTable orders={orders} onUpdateStatus={updateOrderStatus} />
+      )}
+
+      {activeTab === "consultations" && !loading && !error && (
+        <div className="space-y-6">
+          <div className="flex justify-between items-center">
+            <h2 className="text-xl font-semibold">Fitness Consultations</h2>
+            <div className="text-sm text-gray-500">
+              {consultations.filter((c) => !c.contacted).length} pending
+              requests
+            </div>
+          </div>
+
+          <ConsultationTable
+            consultations={consultations}
+            onUpdate={fetchData}
+          />
+
+          <div className="text-sm text-gray-500">
+            <p>
+              When you mark a consultation as contacted, it will be moved to the
+              "Contacted" section.
+            </p>
+            <p>
+              Our team should reach out within 1-2 business days or call the
+              customer at their provided number.
+            </p>
+          </div>
+        </div>
       )}
     </motion.div>
   );

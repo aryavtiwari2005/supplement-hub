@@ -1,89 +1,91 @@
-'use client'
-import React, { useState, createContext, useCallback, useContext } from 'react'
-import Link from 'next/link'
-import { Mail, Lock, User, ArrowRight } from 'lucide-react'
-import { motion } from 'framer-motion'
+"use client";
+import React, { useState, createContext, useCallback, useContext } from "react";
+import Link from "next/link";
+import { Mail, Lock, User, ArrowRight } from "lucide-react";
+import { motion } from "framer-motion";
 
-type Theme = 'light' | 'dark'
+type Theme = "light" | "dark";
 
 const THEMES = {
   light: {
     background: {
-      primary: 'bg-white',
-      secondary: 'bg-yellow-50'
+      primary: "bg-white",
+      secondary: "bg-yellow-50",
     },
     text: {
-      primary: 'text-black',
-      secondary: 'text-gray-700',
-      muted: 'text-gray-500'
+      primary: "text-black",
+      secondary: "text-gray-700",
+      muted: "text-gray-500",
     },
-    border: 'border-gray-200',
+    border: "border-gray-200",
     dropdown: {
-      background: 'bg-yellow-50',
-      text: 'text-gray-800',
-      hover: 'hover:bg-yellow-100'
-    }
+      background: "bg-yellow-50",
+      text: "text-gray-800",
+      hover: "hover:bg-yellow-100",
+    },
   },
   dark: {
     background: {
-      primary: 'bg-black',
-      secondary: 'bg-gray-900'
+      primary: "bg-black",
+      secondary: "bg-gray-900",
     },
     text: {
-      primary: 'text-white',
-      secondary: 'text-gray-300',
-      muted: 'text-gray-500'
+      primary: "text-white",
+      secondary: "text-gray-300",
+      muted: "text-gray-500",
     },
-    border: 'border-gray-800',
+    border: "border-gray-800",
     dropdown: {
-      background: 'bg-gray-900',
-      text: 'text-gray-300',
-      hover: 'hover:bg-gray-800'
-    }
-  }
-}
+      background: "bg-gray-900",
+      text: "text-gray-300",
+      hover: "hover:bg-gray-800",
+    },
+  },
+};
 
 // Theme Context
 interface ThemeContextType {
-  theme: Theme
-  toggleTheme: () => void
+  theme: Theme;
+  toggleTheme: () => void;
 }
 
 const ThemeContext = createContext<ThemeContextType>({
-  theme: 'light',
-  toggleTheme: () => {}
-})
+  theme: "light",
+  toggleTheme: () => {},
+});
 
 // Custom Theme Hook
-const useTheme = () => useContext(ThemeContext)
+const useTheme = () => useContext(ThemeContext);
 
 export default function SignupPage() {
-  const { theme } = useTheme()
-  const [name, setName] = useState('')
-  const [email, setEmail] = useState('')
-  const [password, setPassword] = useState('')
-  const [confirmPassword, setConfirmPassword] = useState('')
+  const { theme } = useTheme();
+  const [name, setName] = useState("");
+  const [email, setEmail] = useState("");
+  const [password, setPassword] = useState("");
+  const [confirmPassword, setConfirmPassword] = useState("");
 
   const handleSubmit = async (e: React.FormEvent) => {
     e.preventDefault();
-  
+
     if (password !== confirmPassword) {
-      alert('Passwords do not match!');
+      alert("Passwords do not match!");
       return;
     }
-  
-    const response = await fetch('/api/signup', {
-      method: 'POST',
-      headers: { 'Content-Type': 'application/json' },
+
+    const response = await fetch("/api/signup", {
+      method: "POST",
+      headers: { "Content-Type": "application/json" },
       body: JSON.stringify({ name, email, password }),
     });
-  
+
     const data = await response.json();
     alert(data.message);
-  };  
+  };
 
   return (
-    <div className={`min-h-screen flex items-center justify-center p-4 ${THEMES[theme].background.primary}`}>
+    <div
+      className={`min-h-screen flex items-center justify-center p-4 ${THEMES[theme].background.primary}`}
+    >
       <motion.div
         initial={{ opacity: 0, y: 20 }}
         animate={{ opacity: 1, y: 0 }}
@@ -113,7 +115,9 @@ export default function SignupPage() {
               Full Name
             </label>
             <div className="relative">
-              <User  className={`absolute left-3 top-1/2 transform -translate-y-1/2 w-5 h-5 ${THEMES[theme].text.muted}`} />
+              <User
+                className={`absolute left-3 top-1/2 transform -translate-y-1/2 w-5 h-5 ${THEMES[theme].text.muted}`}
+              />
               <input
                 type="text"
                 value={name}
@@ -142,7 +146,9 @@ export default function SignupPage() {
               Email
             </label>
             <div className="relative">
-              <Mail className={`absolute left-3 top-1/2 transform -translate-y-1/2 w-5 h-5 ${THEMES[theme].text.muted}`} />
+              <Mail
+                className={`absolute left-3 top-1/2 transform -translate-y-1/2 w-5 h-5 ${THEMES[theme].text.muted}`}
+              />
               <input
                 type="email"
                 value={email}
@@ -171,7 +177,9 @@ export default function SignupPage() {
               Password
             </label>
             <div className="relative">
-              <Lock className={`absolute left-3 top-1/2 transform -translate-y-1/2 w-5 h-5 ${THEMES[theme].text.muted}`} />
+              <Lock
+                className={`absolute left-3 top-1/2 transform -translate-y-1/2 w-5 h-5 ${THEMES[theme].text.muted}`}
+              />
               <input
                 type="password"
                 value={password}
@@ -200,7 +208,9 @@ export default function SignupPage() {
               Confirm Password
             </label>
             <div className="relative">
-              <Lock className={`absolute left-3 top-1/2 transform -translate-y-1/2 w-5 h-5 ${THEMES[theme].text.muted}`} />
+              <Lock
+                className={`absolute left-3 top-1/2 transform -translate-y-1/2 w-5 h-5 ${THEMES[theme].text.muted}`}
+              />
               <input
                 type="password"
                 value={confirmPassword}
@@ -235,7 +245,7 @@ export default function SignupPage() {
         </form>
 
         <p className={`mt-8 text-center ${THEMES[theme].text.secondary}`}>
-          Already have an account?{' '}
+          Already have an account?{" "}
           <Link
             href="/login"
             className="text-yellow-500 hover:text-yellow-600 transition-colors"
@@ -245,5 +255,5 @@ export default function SignupPage() {
         </p>
       </motion.div>
     </div>
-  )
+  );
 }

@@ -3,17 +3,19 @@
 
 import { useState, useEffect } from "react";
 import { motion } from "framer-motion";
-import ProductCarousel from "@/components/products/ProductCarousel";
-import { PRODUCTS } from "@/utils/constants"; // Removed PRODUCT_CATEGORIES
+import { PRODUCTS } from "@/utils/constants";
 import { useSelector } from "react-redux";
 import { selectTheme } from "@/redux/themeSlice";
 import { useRouter } from "next/navigation";
+import ProductCard from "@/components/products/ProductCard"; // Assuming this exists
 
 export default function ProductsPage() {
   const theme = useSelector(selectTheme);
   const router = useRouter();
-  const [products, setProducts] = useState<any[]>([]); // Using any[] since Product type might not be needed here
+  const [products, setProducts] = useState<any[]>([]);
   const [isLoading, setIsLoading] = useState(true);
+  const [currentPage, setCurrentPage] = useState(1);
+  const productsPerPage = 40;
 
   useEffect(() => {
     const loadProducts = async () => {
@@ -32,6 +34,18 @@ export default function ProductsPage() {
     };
     loadProducts();
   }, []);
+
+  // Get current products
+  const indexOfLastProduct = currentPage * productsPerPage;
+  const indexOfFirstProduct = indexOfLastProduct - productsPerPage;
+  const currentProducts = products.slice(
+    indexOfFirstProduct,
+    indexOfLastProduct
+  );
+  const totalPages = Math.ceil(products.length / productsPerPage);
+
+  // Change page
+  const paginate = (pageNumber: number) => setCurrentPage(pageNumber);
 
   const pageVariants = {
     initial: { opacity: 0, y: 50 },
@@ -122,36 +136,153 @@ export default function ProductsPage() {
           } rounded-full max-w-md`}
         />
 
-        {/* Single Product Carousel for All Categories */}
+        {/* Products Grid */}
         <motion.div
           initial={{ opacity: 0, y: 50 }}
           animate={{ opacity: 1, y: 0, transition: { duration: 0.6 } }}
           className="mb-16"
         >
-          <ProductCarousel /> {/* No category prop needed */}
+          <div className="grid grid-cols-1 sm:grid-cols-2 md:grid-cols-3 lg:grid-cols-4 gap-6">
+            {currentProducts.map((product, index) => (
+              <motion.div
+                key={product.id}
+                initial={{ opacity: 0, y: 20 }}
+                animate={{
+                  opacity: 1,
+                  y: 0,
+                  transition: { duration: 0.4, delay: index * 0.05 },
+                }}
+              >
+                <ProductCard
+                  product={product}
+                  showCategory={true}
+                  theme={theme}
+                />
+              </motion.div>
+            ))}
+          </div>
+
+          {/* No products found message */}
+          {products.length === 0 && (
+            <div className="text-center my-12">
+              <p
+                className={`text-xl ${
+                  theme === "light" ? "text-gray-700" : "text-gray-300"
+                }`}
+              >
+                No products found. Check back soon!
+              </p>
+            </div>
+          )}
         </motion.div>
 
-        {/* Call to Action */}
-        <motion.div
-          initial={{ opacity: 0, scale: 0.9 }}
-          animate={{
-            opacity: 1,
-            scale: 1,
-            transition: { duration: 0.6, delay: 0.2 },
-          }}
-          className="text-center mt-12"
-        >
-          <button
-            onClick={() => router.push("/cart")}
-            className={`px-8 py-3 rounded-full text-lg font-semibold ${
-              theme === "light"
-                ? "bg-yellow-500 text-black hover:bg-yellow-600"
-                : "bg-yellow-600 text-white hover:bg-yellow-700"
-            } transition-all duration-300 shadow-lg hover:shadow-xl`}
+        {/* Pagination */}
+        {products.length > 0 && (
+          <motion.div
+            initial={{ opacity: 0 }}
+            animate={{ opacity: 1, transition: { duration: 0.6, delay: 0.4 } }}
+            className="flex justify-center mt-8 mb-12"
           >
-            View Full Cart
-          </button>
-        </motion.div>
+            <nav className="flex items-center">
+              <button
+                onClick={() => currentPage > 1 && paginate(currentPage - 1)}
+                disabled={currentPage === 1}
+                className={`px-4 py-2 mx-1 rounded-md ${
+                  currentPage === 1
+                    ? `${
+                        theme === "light"
+                          ? "bg-gray-200 text-gray-500"
+                          : "bg-gray-700 text-gray-400"
+                      } cursor-not-allowed`
+                    : `${
+                        theme === "light"
+                          ? "bg-gray-200 text-gray-700 hover:bg-gray-300"
+                          : "bg-gray-700 text-gray-200 hover:bg-gray-600"
+                      }`
+                } transition-colors duration-300`}
+              >
+                Previous
+              </button>
+
+              {[...Array(totalPages)].map((_, index) => {
+                // Show limited page numbers with ellipsis for better UX
+                const pageNumber = index + 1;
+
+                // Always show first, last, current and pages around current
+                if (
+                  pageNumber === 1 ||
+                  pageNumber === totalPages ||
+                  (pageNumber >= currentPage - 1 &&
+                    pageNumber <= currentPage + 1)
+                ) {
+                  return (
+                    <button
+                      key={pageNumber}
+                      onClick={() => paginate(pageNumber)}
+                      className={`w-10 h-10 mx-1 rounded-md flex items-center justify-center transition-colors duration-300 ${
+                        currentPage === pageNumber
+                          ? `${
+                              theme === "light"
+                                ? "bg-yellow-500 text-white"
+                                : "bg-yellow-600 text-white"
+                            }`
+                          : `${
+                              theme === "light"
+                                ? "bg-gray-200 text-gray-700 hover:bg-gray-300"
+                                : "bg-gray-700 text-gray-200 hover:bg-gray-600"
+                            }`
+                      }`}
+                    >
+                      {pageNumber}
+                    </button>
+                  );
+                }
+
+                // Show ellipsis
+                if (
+                  (pageNumber === 2 && currentPage > 3) ||
+                  (pageNumber === totalPages - 1 &&
+                    currentPage < totalPages - 2)
+                ) {
+                  return (
+                    <span
+                      key={pageNumber}
+                      className={`w-10 h-10 mx-1 flex items-center justify-center ${
+                        theme === "light" ? "text-gray-700" : "text-gray-300"
+                      }`}
+                    >
+                      ...
+                    </span>
+                  );
+                }
+
+                return null;
+              })}
+
+              <button
+                onClick={() =>
+                  currentPage < totalPages && paginate(currentPage + 1)
+                }
+                disabled={currentPage === totalPages}
+                className={`px-4 py-2 mx-1 rounded-md ${
+                  currentPage === totalPages
+                    ? `${
+                        theme === "light"
+                          ? "bg-gray-200 text-gray-500"
+                          : "bg-gray-700 text-gray-400"
+                      } cursor-not-allowed`
+                    : `${
+                        theme === "light"
+                          ? "bg-gray-200 text-gray-700 hover:bg-gray-300"
+                          : "bg-gray-700 text-gray-200 hover:bg-gray-600"
+                      }`
+                } transition-colors duration-300`}
+              >
+                Next
+              </button>
+            </nav>
+          </motion.div>
+        )}
       </div>
     </motion.div>
   );

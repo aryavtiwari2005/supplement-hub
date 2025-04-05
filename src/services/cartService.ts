@@ -9,6 +9,13 @@ interface Coupon {
   expires_at?: string | null;
 }
 
+type UserAddress = {
+  street: string;
+  city: string;
+  state: string;
+  zipCode: string;
+};
+
 export const cartService = {
   async getCoupon(code: string): Promise<Coupon | null> {
     const { data, error } = await supabase
@@ -19,12 +26,16 @@ export const cartService = {
       .single();
 
     if (error || !data) {
-      console.error("Error fetching coupon:", error);
+      console.error(
+        "Error fetching coupon:",
+        error?.message || "No coupon found"
+      );
       return null;
     }
 
     // Check if coupon is expired
     if (data.expires_at && new Date(data.expires_at) < new Date()) {
+      console.log(`Coupon ${code} has expired`);
       return null;
     }
 
@@ -44,9 +55,10 @@ export const cartService = {
       .single();
 
     if (error) {
-      console.error("Error fetching cart:", error);
-      throw error;
+      console.error("Error fetching cart:", error.message);
+      throw new Error(`Failed to fetch cart: ${error.message}`);
     }
+
     return data?.cart || [];
   },
 
@@ -65,11 +77,17 @@ export const cartService = {
     if (existingItemIndex >= 0) {
       updatedCart = currentCart.map((cartItem, index) =>
         index === existingItemIndex
-          ? { ...cartItem, quantity: cartItem.quantity + item.quantity }
+          ? {
+              ...cartItem,
+              quantity: Math.min(10, cartItem.quantity + item.quantity),
+            } // Cap at 10
           : cartItem
       );
     } else {
-      updatedCart = [...currentCart, item];
+      updatedCart = [
+        ...currentCart,
+        { ...item, quantity: Math.min(item.quantity, 10) },
+      ];
     }
 
     const { error } = await supabase
@@ -78,8 +96,8 @@ export const cartService = {
       .eq("id", userId);
 
     if (error) {
-      console.error("Supabase error in addToCart:", error);
-      throw error;
+      console.error("Supabase error in addToCart:", error.message);
+      throw new Error(`Failed to add item to cart: ${error.message}`);
     }
   },
 
@@ -97,7 +115,10 @@ export const cartService = {
       .update({ cart: updatedCart })
       .eq("id", userId);
 
-    if (error) throw error;
+    if (error) {
+      console.error("Supabase error in removeFromCart:", error.message);
+      throw new Error(`Failed to remove item from cart: ${error.message}`);
+    }
   },
 
   async updateCartQuantity(
@@ -112,7 +133,11 @@ export const cartService = {
 
     const currentCart = await this.getUserCart(userId);
     const updatedCart = currentCart
-      .map((item) => (item.id === productId ? { ...item, quantity } : item))
+      .map((item) =>
+        item.id === productId
+          ? { ...item, quantity: Math.max(1, Math.min(10, quantity)) } // Enforce 1-10 range
+          : item
+      )
       .filter((item) => item.quantity > 0);
 
     const { error } = await supabase
@@ -120,41 +145,91 @@ export const cartService = {
       .update({ cart: updatedCart })
       .eq("id", userId);
 
-    if (error) throw error;
+    if (error) {
+      console.error("Supabase error in updateCartQuantity:", error.message);
+      throw new Error(`Failed to update cart quantity: ${error.message}`);
+    }
   },
 
-  async checkout(userId: number, cartItems: CartItem[]): Promise<void> {
-    if (!userId) {
-      console.error("checkout called with empty userId");
-      throw new Error("Invalid user ID");
+  async checkout(
+    userId: number,
+    cartItems: CartItem[],
+    address: UserAddress,
+    paymentMethod: "phonePe" | "cod",
+    couponCode?: string
+  ): Promise<{ orderId: string }> {
+    if (!userId) throw new Error("Invalid user ID");
+    if (!cartItems.length) throw new Error("Cart is empty");
+
+    // Validate address
+    if (
+      !address.street ||
+      !address.city ||
+      !address.state ||
+      !address.zipCode
+    ) {
+      throw new Error("Incomplete address provided");
     }
 
-    if (!cartItems.length) {
-      throw new Error("Cart is empty");
-    }
+    // Calculate total
+    let subtotal = cartItems.reduce(
+      (sum, item) => sum + item.price * item.quantity,
+      0
+    );
+    let discount = 0;
 
-    const orderDetails = {
-      user_id: userId,
+    // Apply coupon if valid
+    if (couponCode) {
+      const coupon = await this.getCoupon(couponCode);
+      if (coupon) {
+        discount = subtotal * (coupon.discount_percentage / 100);
+      }
+    }
+    const total = subtotal - discount;
+
+    // Generate order ID
+    const orderId = `order-${Date.now()}`;
+
+    // Create order object
+    const newOrder = {
+      order_id: orderId,
       items: cartItems,
-      total: cartItems.reduce(
-        (sum, item) => sum + item.price * item.quantity,
-        0
-      ),
-      status: "pending",
+      total,
+      subtotal,
+      discount,
+      status: paymentMethod === "cod" ? "pending" : "awaiting_payment",
+      payment_method: paymentMethod,
+      address,
+      coupon_code: couponCode || null,
       created_at: new Date().toISOString(),
     };
 
-    const { error: orderError } = await supabase
-      .from("orders")
-      .insert(orderDetails);
-
-    if (orderError) throw orderError;
-
-    const { error: clearCartError } = await supabase
+    // Get current orders
+    const { data: userData, error: fetchError } = await supabase
       .from("users_onescoop")
-      .update({ cart: [] })
+      .select("orders")
+      .eq("id", userId)
+      .single();
+
+    if (fetchError)
+      throw new Error(`Failed to fetch user orders: ${fetchError.message}`);
+
+    // Update orders array
+    const currentOrders = userData?.orders || [];
+    const updatedOrders = [...currentOrders, newOrder];
+
+    // Update user record
+    const { error: updateError } = await supabase
+      .from("users_onescoop")
+      .update({
+        orders: updatedOrders,
+        cart: [], // Clear cart
+      })
       .eq("id", userId);
 
-    if (clearCartError) throw clearCartError;
+    if (updateError)
+      throw new Error(`Failed to update orders: ${updateError.message}`);
+
+    return { orderId };
   },
 };

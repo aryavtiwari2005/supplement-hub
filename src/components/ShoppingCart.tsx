@@ -1,4 +1,3 @@
-// cartPage.tsx
 "use client";
 
 import { useSelector, useDispatch } from "react-redux";
@@ -23,6 +22,14 @@ interface CartItem {
   price: number;
   quantity: number;
   imageUrl: string;
+}
+
+// Define UserAddress interface (NEW)
+interface UserAddress {
+  street: string;
+  city: string;
+  state: string;
+  zipCode: string;
 }
 
 // Define props interface
@@ -75,16 +82,24 @@ const CartPage: FC<CartPageProps> = ({ userId }) => {
   const [isCheckingOut, setIsCheckingOut] = useState(false);
   const [errorMessage, setErrorMessage] = useState("");
   const [successMessage, setSuccessMessage] = useState("");
+  // NEW: Added state for address and payment method
+  const [address, setAddress] = useState<UserAddress>({
+    street: "",
+    city: "",
+    state: "",
+    zipCode: "",
+  });
+  const [paymentMethod, setPaymentMethod] = useState<"phonePe" | "cod">("cod");
   const router = useRouter();
 
   useEffect(() => {
     const fetchCart = async () => {
       try {
-        const numericUserId = Number(userId); // Convert string to number
+        const numericUserId = Number(userId);
         if (isNaN(numericUserId)) {
           throw new Error("Invalid user ID");
         }
-        const cart = await cartService.getUserCart(numericUserId); // Pass number
+        const cart = await cartService.getUserCart(numericUserId);
         dispatch(setCartItems(cart || []));
       } catch (error) {
         console.error("Error fetching cart:", error);
@@ -124,6 +139,17 @@ const CartPage: FC<CartPageProps> = ({ userId }) => {
       return;
     }
 
+    // NEW: Validate address
+    if (
+      !address.street ||
+      !address.city ||
+      !address.state ||
+      !address.zipCode
+    ) {
+      setErrorMessage("Please provide a complete shipping address");
+      return;
+    }
+
     setIsCheckingOut(true);
     setErrorMessage("");
     setSuccessMessage("");
@@ -131,11 +157,21 @@ const CartPage: FC<CartPageProps> = ({ userId }) => {
     try {
       const numericUserId = Number(userId);
       if (isNaN(numericUserId)) throw new Error("Invalid user ID");
-      await cartService.checkout(numericUserId, cartItems);
+      // CHANGED: Added address and paymentMethod to checkout call
+      await cartService.checkout(
+        numericUserId,
+        cartItems,
+        address,
+        paymentMethod
+      );
       setSuccessMessage("Checkout successful!");
-    } catch (error) {
+      // NEW: Clear cart and redirect
+      dispatch(setCartItems([]));
+      setTimeout(() => router.push("/orders"), 2000);
+    } catch (error: any) {
+      // CHANGED: Added type assertion for better error handling
       console.error("Error during checkout:", error);
-      setErrorMessage("Checkout failed. Please try again.");
+      setErrorMessage(error.message || "Checkout failed. Please try again.");
     } finally {
       setIsCheckingOut(false);
     }
@@ -165,6 +201,66 @@ const CartPage: FC<CartPageProps> = ({ userId }) => {
           {successMessage}
         </div>
       )}
+
+      {/* NEW: Address Form */}
+      <div className={`mb-6 p-4 ${THEMES[theme].background.secondary} rounded`}>
+        <h2
+          className={`text-lg font-semibold ${THEMES[theme].text.primary} mb-2`}
+        >
+          Shipping Address
+        </h2>
+        <div className="grid grid-cols-1 md:grid-cols-2 gap-4">
+          <input
+            type="text"
+            placeholder="Street"
+            value={address.street}
+            onChange={(e) => setAddress({ ...address, street: e.target.value })}
+            className={`p-2 rounded ${THEMES[theme].border} ${THEMES[theme].background.primary} ${THEMES[theme].text.primary}`}
+          />
+          <input
+            type="text"
+            placeholder="City"
+            value={address.city}
+            onChange={(e) => setAddress({ ...address, city: e.target.value })}
+            className={`p-2 rounded ${THEMES[theme].border} ${THEMES[theme].background.primary} ${THEMES[theme].text.primary}`}
+          />
+          <input
+            type="text"
+            placeholder="State"
+            value={address.state}
+            onChange={(e) => setAddress({ ...address, state: e.target.value })}
+            className={`p-2 rounded ${THEMES[theme].border} ${THEMES[theme].background.primary} ${THEMES[theme].text.primary}`}
+          />
+          <input
+            type="text"
+            placeholder="Zip Code"
+            value={address.zipCode}
+            onChange={(e) =>
+              setAddress({ ...address, zipCode: e.target.value })
+            }
+            className={`p-2 rounded ${THEMES[theme].border} ${THEMES[theme].background.primary} ${THEMES[theme].text.primary}`}
+          />
+        </div>
+      </div>
+
+      {/* NEW: Payment Method Selection */}
+      <div className={`mb-6 p-4 ${THEMES[theme].background.secondary} rounded`}>
+        <h2
+          className={`text-lg font-semibold ${THEMES[theme].text.primary} mb-2`}
+        >
+          Payment Method
+        </h2>
+        <select
+          value={paymentMethod}
+          onChange={(e) =>
+            setPaymentMethod(e.target.value as "phonePe" | "cod")
+          }
+          className={`p-2 rounded ${THEMES[theme].border} ${THEMES[theme].background.primary} ${THEMES[theme].text.primary}`}
+        >
+          <option value="cod">Cash on Delivery</option>
+          <option value="phonePe">PhonePe</option>
+        </select>
+      </div>
 
       {cartItems.length === 0 ? (
         <div className={`text-center py-8 ${THEMES[theme].text.muted}`}>

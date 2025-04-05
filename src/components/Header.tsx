@@ -500,7 +500,7 @@ export default function Header() {
       items: [
         {
           name: "Fitness Consultancies",
-          href: "/services/fitness-consultancies",
+          href: "/fitness-consultancy",
           icon: Flame,
         },
         // ... (other subItems remain the same)
