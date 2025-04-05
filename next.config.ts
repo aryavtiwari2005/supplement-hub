@@ -27,6 +27,11 @@ const nextConfig: NextConfig = {
     NEXT_PUBLIC_SUPABASE_URL: process.env.NEXT_PUBLIC_SUPABASE_URL,
     RAZORPAY_KEY_SECRET: process.env.RAZORPAY_KEY_SECRET,
     RAZORPAY_KEY_ID: process.env.RAZORPAY_KEY_ID,
+    PHONEPE_HOST: process.env.PHONEPE_HOST,
+    PHONEPE_MERCHANT_ID: process.env.PHONEPE_MERCHANT_ID,
+    PHONEPE_SALT_KEY: process.env.PHONEPE_SALT_KEY,
+    PHONEPE_SALT_INDEX: process.env.PHONEPE_SALT_INDEX,
+    NEXT_PUBLIC_APP_URL: process.env.NEXT_PUBLIC_APP_URL,
   },
 
   // Webpack configuration (if needed)

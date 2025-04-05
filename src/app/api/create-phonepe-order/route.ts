@@ -3,14 +3,17 @@ import crypto from "crypto";
 import { supabase } from "@/utils/supabase";
 import { orderService } from "@/services/orderService";
 
-// Corrected sandbox URL: "preprod" instead of "prepod"
-const PHONEPE_HOST =
-  process.env.PHONEPE_HOST || "https://api-preprod.phonepe.com/apis/hermes";
+// Hardcode sandbox URL for testing
+const PHONEPE_HOST = process.env.PHONEPE_HOST;
 const MERCHANT_ID = process.env.PHONEPE_MERCHANT_ID;
 const SALT_KEY = process.env.PHONEPE_SALT_KEY;
 const SALT_INDEX = process.env.PHONEPE_SALT_INDEX || "1";
 const CALLBACK_URL = process.env.NEXT_PUBLIC_APP_URL + "/api/payment-callback";
 const REDIRECT_URL = process.env.NEXT_PUBLIC_APP_URL + "/payment-status";
+
+async function delay(ms: number) {
+  return new Promise((resolve) => setTimeout(resolve, ms));
+}
 
 export async function POST(req: NextRequest) {
   try {
@@ -34,13 +37,16 @@ export async function POST(req: NextRequest) {
     if (!MERCHANT_ID || !SALT_KEY) {
       console.error("PhonePe credentials missing:", { MERCHANT_ID, SALT_KEY });
       return NextResponse.json(
-        { error: "Payment gateway not configured" },
+        {
+          error:
+            "Payment gateway not configured properly. Missing MERCHANT_ID or SALT_KEY.",
+        },
         { status: 500 }
       );
     }
 
     const tempOrderId = `temp-order-${Date.now()}`;
-    const merchantTransactionId = `${tempOrderId}-${Date.now()}`;
+    const merchantTransactionId = `MT${Date.now()}`;
     console.log("Generated IDs:", { tempOrderId, merchantTransactionId });
 
     const { error: tempError } = await supabase.from("pending_orders").insert({
@@ -77,7 +83,7 @@ export async function POST(req: NextRequest) {
 
     if (txnError) {
       console.error(
-        "Failed to store transaction, full error:",
+        "Failed to store transaction:",
         JSON.stringify(txnError, null, 2)
       );
       throw new Error(
@@ -89,8 +95,8 @@ export async function POST(req: NextRequest) {
     const payload = {
       merchantId: MERCHANT_ID,
       merchantTransactionId,
-      merchantUserId: `MUID-${userId}`,
-      amount: Math.round(amount * 100),
+      merchantUserId: `MUID${userId}`,
+      amount: Math.round(amount * 100), // Amount in paise
       redirectUrl: `${REDIRECT_URL}?orderId=${tempOrderId}&transactionId=${merchantTransactionId}`,
       redirectMode: "REDIRECT",
       callbackUrl: CALLBACK_URL,
@@ -102,39 +108,95 @@ export async function POST(req: NextRequest) {
     const payloadString = JSON.stringify(payload);
     const payloadBase64 = Buffer.from(payloadString).toString("base64");
     console.log("Payload base64:", payloadBase64);
-    const string = payloadBase64 + "/pg/v1/pay" + SALT_KEY;
-    console.log("Checksum string:", string);
-    const sha256 = crypto.createHash("sha256").update(string).digest("hex");
-    const checksum = sha256 + "###" + SALT_INDEX;
+
+    const endpoint = "/pg/v1/pay";
+    const stringToHash = payloadBase64 + endpoint + SALT_KEY;
+    console.log("Checksum string:", stringToHash);
+    const sha256 = crypto
+      .createHash("sha256")
+      .update(stringToHash)
+      .digest("hex");
+    const checksum = `${sha256}###${SALT_INDEX}`;
     console.log("Generated checksum:", checksum);
-    console.log("Fetching from URL:", `${PHONEPE_HOST}/pg/v1/pay`);
+    console.log("Fetching from URL:", `${PHONEPE_HOST}${endpoint}`);
 
-    const response = await fetch(`${PHONEPE_HOST}/pg/v1/pay`, {
-      method: "POST",
-      headers: {
-        "Content-Type": "application/json",
-        "X-VERIFY": checksum,
-      },
-      body: JSON.stringify({ request: payloadBase64 }),
-      signal: AbortSignal.timeout(30000),
-    });
+    // Retry logic for 429
+    let attempts = 0;
+    const maxAttempts = 3;
+    while (attempts < maxAttempts) {
+      try {
+        const response = await fetch(`${PHONEPE_HOST}${endpoint}`, {
+          method: "POST",
+          headers: {
+            "Content-Type": "application/json",
+            "X-VERIFY": checksum,
+            "X-MERCHANT-ID": MERCHANT_ID,
+            Accept: "application/json",
+          },
+          body: JSON.stringify({ request: payloadBase64 }),
+          signal: AbortSignal.timeout(60000),
+        });
 
-    const responseData = await response.json();
-    console.log("PhonePe response status:", response.status);
-    console.log("PhonePe response data:", responseData);
+        const responseData = await response.json();
+        console.log("PhonePe response status:", response.status);
+        console.log(
+          "PhonePe response data:",
+          JSON.stringify(responseData, null, 2)
+        );
 
-    if (!response.ok) {
-      console.error("PhonePe API error:", response.status, responseData);
-      return NextResponse.json(
-        { error: "Payment initiation failed", details: responseData },
-        { status: response.status }
-      );
+        if (response.status === 429) {
+          attempts++;
+          console.log(
+            `Rate limit hit (attempt ${attempts}/${maxAttempts}). Retrying in ${
+              attempts * 5
+            }s...`
+          );
+          await delay(attempts * 5000); // Exponential backoff: 5s, 10s, 15s
+          continue;
+        }
+
+        if (!response.ok || !responseData.success) {
+          console.error("PhonePe API error:", response.status, responseData);
+          return NextResponse.json(
+            {
+              error: "Payment initiation failed",
+              details:
+                responseData.message || responseData.code || "Unknown error",
+              phonePeResponse: responseData,
+            },
+            { status: response.status || 500 }
+          );
+        }
+
+        if (
+          !responseData.data ||
+          !responseData.data.instrumentResponse?.redirectInfo?.url
+        ) {
+          console.error("Invalid PhonePe response structure:", responseData);
+          throw new Error("Missing payment URL in PhonePe response");
+        }
+
+        return NextResponse.json({
+          success: true,
+          paymentUrl: responseData.data.instrumentResponse.redirectInfo.url,
+        });
+      } catch (fetchError: any) {
+        console.error(
+          "Fetch to PhonePe failed:",
+          fetchError.message,
+          fetchError.stack
+        );
+        throw new Error(
+          `Failed to connect to PhonePe API: ${fetchError.message}`
+        );
+      }
     }
 
-    return NextResponse.json({
-      success: true,
-      paymentUrl: responseData.data.instrumentResponse.redirectInfo.url,
-    });
+    console.error("Max retry attempts reached for PhonePe API");
+    return NextResponse.json(
+      { error: "Too many requests to PhonePe API. Please try again later." },
+      { status: 429 }
+    );
   } catch (error: any) {
     console.error(
       "PhonePe payment creation error:",

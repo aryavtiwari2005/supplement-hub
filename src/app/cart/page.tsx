@@ -98,8 +98,8 @@ const CartPage = () => {
   const [user, setUser] = useState<User | null>(null);
   const [couponCode, setCouponCode] = useState("");
   const [appliedCoupon, setAppliedCoupon] = useState<CouponType | null>(null);
+  const [loadingSavedAddress, setLoadingSavedAddress] = useState(false);
 
-  // New states for multi-step checkout
   const [checkoutStep, setCheckoutStep] = useState<1 | 2 | 3>(1);
   const [address, setAddress] = useState<UserAddress>({
     street: "",
@@ -110,7 +110,6 @@ const CartPage = () => {
   const [paymentMethod, setPaymentMethod] = useState<"phonePe" | "cod">(
     "phonePe"
   );
-  const [loadingSavedAddress, setLoadingSavedAddress] = useState(false);
 
   const fetchCartData = async (userId: number) => {
     try {
@@ -122,31 +121,9 @@ const CartPage = () => {
     }
   };
 
-  const fetchUserAddress = async (userId: number) => {
-    setLoadingSavedAddress(true);
-    try {
-      const response = await fetch(`/api/user/address/${userId}`, {
-        credentials: "include",
-      });
-
-      if (response.ok) {
-        const data = await response.json();
-        if (data.address) {
-          setAddress(data.address);
-        }
-        if (data.paymentPreference) {
-          setPaymentMethod(data.paymentPreference as "phonePe" | "cod");
-        }
-      }
-    } catch (error) {
-      console.error("Error fetching user address:", error);
-    } finally {
-      setLoadingSavedAddress(false);
-    }
-  };
-
   useEffect(() => {
     const fetchUserAndCart = async () => {
+      setLoadingSavedAddress(true); // Add this line
       try {
         const res = await fetch("/api/user", { credentials: "include" });
         if (!res.ok) {
@@ -158,6 +135,7 @@ const CartPage = () => {
             setErrorMessage("Error fetching user data");
           }
           setIsLoading(false);
+          setLoadingSavedAddress(false); // Add this line
           return;
         }
 
@@ -167,13 +145,26 @@ const CartPage = () => {
 
         if (fetchedUser?.id) {
           await fetchCartData(fetchedUser.id);
-          await fetchUserAddress(fetchedUser.id);
+          if (fetchedUser.address) {
+            setAddress({
+              street: fetchedUser.address.street || "",
+              city: fetchedUser.address.city || "",
+              state: fetchedUser.address.state || "",
+              zipCode: fetchedUser.address.zipCode || "",
+            });
+          }
+          if (fetchedUser.paymentPreference) {
+            setPaymentMethod(
+              fetchedUser.paymentPreference as "phonePe" | "cod"
+            );
+          }
         }
       } catch (error) {
         console.error("Failed to fetch user or cart:", error);
         setErrorMessage("Error loading cart. Please try again.");
       } finally {
         setIsLoading(false);
+        setLoadingSavedAddress(false); // Move this inside finally
       }
     };
 
@@ -199,13 +190,11 @@ const CartPage = () => {
     const item = cartItems.find((i) => i.id === id);
     if (!item) return;
 
-    // Enforce maximum quantity of 10
     if (item.quantity + delta > 10) {
       setErrorMessage("Maximum quantity per item is 10");
       return;
     }
 
-    // Ensure minimum quantity is 1
     const newQuantity = Math.max(1, item.quantity + delta);
 
     try {
@@ -234,7 +223,7 @@ const CartPage = () => {
         setSuccessMessage(
           `Coupon "${coupon.code}" applied! ${coupon.discount_percentage}% off.`
         );
-        setCouponCode(""); // Clear input after successful apply
+        setCouponCode("");
       } else {
         setErrorMessage("Invalid or expired coupon code.");
         setAppliedCoupon(null);
@@ -257,7 +246,6 @@ const CartPage = () => {
   const handleSaveAddress = async () => {
     if (!user?.id) return;
 
-    // Validate address fields
     const requiredFields = ["street", "city", "state", "zipCode"];
     const missingFields = requiredFields.filter(
       (field) => !address[field as keyof UserAddress]
@@ -273,10 +261,10 @@ const CartPage = () => {
     setIsProcessing(true);
 
     try {
-      const response = await fetch(`/api/user/address/${user.id}`, {
+      const response = await fetch("/api/user", {
         method: "POST",
         headers: { "Content-Type": "application/json" },
-        body: JSON.stringify({ address }),
+        body: JSON.stringify({ action: "save-address", address }),
         credentials: "include",
       });
 
@@ -284,7 +272,8 @@ const CartPage = () => {
         setSuccessMessage("Address saved successfully");
         setCheckoutStep(3);
       } else {
-        setErrorMessage("Failed to save address");
+        const errorData = await response.json();
+        setErrorMessage(errorData.message || "Failed to save address");
       }
     } catch (error) {
       console.error("Error saving address:", error);
@@ -303,7 +292,6 @@ const CartPage = () => {
     setSuccessMessage("");
 
     try {
-      // Validate address
       if (
         !address.street ||
         !address.city ||
@@ -313,35 +301,82 @@ const CartPage = () => {
         throw new Error("Please provide a complete shipping address");
       }
 
-      // Save payment preference (optional, kept from original)
-      await fetch(`/api/user/payment-preference/${user.id}`, {
+      // Save payment preference
+      const paymentResponse = await fetch("/api/user", {
         method: "POST",
         headers: { "Content-Type": "application/json" },
-        body: JSON.stringify({ paymentPreference: paymentMethod }),
+        body: JSON.stringify({
+          action: "save-payment-preference",
+          paymentPreference: paymentMethod,
+        }),
         credentials: "include",
       });
 
-      // Use cartService.checkout with all required arguments
-      const { orderId } = await cartService.checkout(
-        user.id,
-        cartItems,
-        address,
-        paymentMethod,
-        appliedCoupon?.code // Optional coupon code
-      );
+      if (!paymentResponse.ok) {
+        const errorData = await paymentResponse.json();
+        throw new Error(
+          errorData.message || "Failed to save payment preference"
+        );
+      }
 
-      setSuccessMessage(
-        `Order placed successfully! Your order ID is ${orderId}`
+      const subtotal = cartItems.reduce(
+        (sum, item) => sum + item.price * item.quantity,
+        0
       );
-      dispatch(setCartItems([]));
-      setAppliedCoupon(null);
+      const total = appliedCoupon
+        ? Math.max(
+            0,
+            subtotal - subtotal * (appliedCoupon.discount_percentage / 100)
+          )
+        : subtotal;
 
       if (paymentMethod === "phonePe") {
-        // For PhonePe, redirect to payment gateway (assuming this is handled server-side in cartService.checkout)
-        // If a separate payment URL is needed, you'd need to adjust cartService.checkout to return it
-        setTimeout(() => router.push(`/payment/${orderId}`), 2000); // Example redirect
+        // Change endpoint from /api/payment to /api/create-phonepe-order
+        const paymentResponse = await fetch("/api/create-phonepe-order", {
+          method: "POST",
+          headers: { "Content-Type": "application/json" },
+          body: JSON.stringify({
+            cartItems,
+            amount: total,
+            userId: user.id,
+            address,
+            couponCode: appliedCoupon?.code,
+          }),
+          credentials: "include",
+        });
+
+        if (!paymentResponse.ok) {
+          const errorData = await paymentResponse.json();
+          if (paymentResponse.status === 404) {
+            throw new Error(
+              "Payment API endpoint not found. Please contact support."
+            );
+          }
+          throw new Error(
+            errorData.error || "Failed to initiate PhonePe payment"
+          );
+        }
+
+        const { paymentUrl } = await paymentResponse.json();
+        if (!paymentUrl) {
+          throw new Error("No payment URL received from server");
+        }
+
+        window.location.href = paymentUrl;
       } else {
-        // For COD, redirect to orders page
+        const { orderId } = await cartService.checkout(
+          user.id,
+          cartItems,
+          address,
+          paymentMethod,
+          appliedCoupon?.code
+        );
+
+        setSuccessMessage(
+          `Order placed successfully! Your order ID is ${orderId}`
+        );
+        dispatch(setCartItems([]));
+        setAppliedCoupon(null);
         setTimeout(() => router.push("/orders"), 2000);
       }
     } catch (error: any) {
@@ -356,13 +391,11 @@ const CartPage = () => {
     (sum, item) => sum + item.price * item.quantity,
     0
   );
-
   const calculateTotalWithDiscount = () => {
     if (!appliedCoupon) return subtotal;
     const discount = subtotal * (appliedCoupon.discount_percentage / 100);
     return Math.max(0, subtotal - discount);
   };
-
   const total = calculateTotalWithDiscount();
 
   // Renders the step indicator
