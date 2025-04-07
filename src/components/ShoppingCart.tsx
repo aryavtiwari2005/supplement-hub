@@ -167,7 +167,7 @@ const CartPage: FC<CartPageProps> = ({ userId }) => {
       setSuccessMessage("Checkout successful!");
       // NEW: Clear cart and redirect
       dispatch(setCartItems([]));
-      setTimeout(() => router.push("/orders"), 2000);
+      setTimeout(() => router.push("/profile/orders"), 2000);
     } catch (error: any) {
       // CHANGED: Added type assertion for better error handling
       console.error("Error during checkout:", error);

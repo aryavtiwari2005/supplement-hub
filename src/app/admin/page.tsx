@@ -14,6 +14,7 @@ import BlogForm from "@/components/admin/BlogForm";
 import ConsultationTable from "@/components/admin/ConsultationTable";
 import OrderTable from "@/components/admin/OrderTable";
 import { useRouter } from "next/navigation"; // Import useRouter for redirection
+import { Order } from "@/types/orders";
 
 interface Coupon {
   id: string;
@@ -64,22 +65,6 @@ interface BlogFormState {
   content: string;
   image: File | null;
   imageUrl: string | null;
-}
-
-interface Order {
-  order_id: string;
-  items: Array<{
-    id: number;
-    name: string;
-    image: string;
-    price: number;
-    quantity: number;
-  }>;
-  total: number;
-  status: string;
-  created_at: string;
-  user_id?: number;
-  user_email?: string;
 }
 
 export default function AdminPanel() {
@@ -193,7 +178,6 @@ export default function AdminPanel() {
           .from("fitness_consultations")
           .select("*")
           .order("created_at", { ascending: false });
-
       if (consultationError)
         throw new Error(
           `Consultation fetch error: ${consultationError.message}`

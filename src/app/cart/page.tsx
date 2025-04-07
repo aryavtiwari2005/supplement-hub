@@ -16,10 +16,7 @@ import {
   ArrowLeft,
   ArrowRight,
   CreditCard,
-  Truck,
-  Home,
   MapPin,
-  Phone,
 } from "lucide-react";
 import Link from "next/link";
 import { useRouter } from "next/navigation";
@@ -40,23 +37,8 @@ const THEMES = {
       hover: "hover:bg-yellow-100",
     },
   },
-  dark: {
-    background: { primary: "bg-black", secondary: "bg-gray-900" },
-    text: {
-      primary: "text-white",
-      secondary: "text-gray-300",
-      muted: "text-gray-500",
-    },
-    border: "border-gray-800",
-    dropdown: {
-      background: "bg-gray-900",
-      text: "text-gray-300",
-      hover: "hover:bg-gray-800",
-    },
-  },
 };
 
-// Define types
 type User = {
   id: number;
   name: string;
@@ -87,7 +69,7 @@ type CouponType = {
 };
 
 const CartPage = () => {
-  const [theme] = useState<"light" | "dark">("light");
+  const [theme] = useState<"light">("light");
   const dispatch = useDispatch();
   const cartItems = useSelector(selectCartItems);
   const [isProcessing, setIsProcessing] = useState(false);
@@ -117,54 +99,32 @@ const CartPage = () => {
       dispatch(setCartItems(cart));
     } catch (error) {
       console.error("Error fetching cart:", error);
-      setErrorMessage("Failed to load cart from server. Showing local cart.");
+      setErrorMessage("Failed to load cart from server.");
     }
   };
 
   useEffect(() => {
     const fetchUserAndCart = async () => {
-      setLoadingSavedAddress(true); // Add this line
+      setLoadingSavedAddress(true);
       try {
         const res = await fetch("/api/user", { credentials: "include" });
-        if (!res.ok) {
-          if (res.status === 401) {
-            setErrorMessage("Please log in to view your cart");
-          } else if (res.status === 404) {
-            setErrorMessage("User not found");
-          } else {
-            setErrorMessage("Error fetching user data");
-          }
-          setIsLoading(false);
-          setLoadingSavedAddress(false); // Add this line
-          return;
-        }
-
+        if (!res.ok) throw new Error("Failed to fetch user data");
         const data = await res.json();
         const fetchedUser = data.user;
         setUser(fetchedUser);
 
         if (fetchedUser?.id) {
           await fetchCartData(fetchedUser.id);
-          if (fetchedUser.address) {
-            setAddress({
-              street: fetchedUser.address.street || "",
-              city: fetchedUser.address.city || "",
-              state: fetchedUser.address.state || "",
-              zipCode: fetchedUser.address.zipCode || "",
-            });
-          }
-          if (fetchedUser.paymentPreference) {
-            setPaymentMethod(
-              fetchedUser.paymentPreference as "phonePe" | "cod"
-            );
-          }
+          if (fetchedUser.address) setAddress(fetchedUser.address);
+          if (fetchedUser.paymentPreference)
+            setPaymentMethod(fetchedUser.paymentPreference);
         }
       } catch (error) {
         console.error("Failed to fetch user or cart:", error);
         setErrorMessage("Error loading cart. Please try again.");
       } finally {
         setIsLoading(false);
-        setLoadingSavedAddress(false); // Move this inside finally
+        setLoadingSavedAddress(false);
       }
     };
 
@@ -172,8 +132,7 @@ const CartPage = () => {
   }, [dispatch]);
 
   const handleRemoveItem = async (id: number) => {
-    if (!user?.id) return setErrorMessage("Please log in to manage your cart.");
-
+    if (!user?.id) return setErrorMessage("Please log in.");
     try {
       dispatch(removeFromCart(id));
       await cartService.removeFromCart(user.id, id);
@@ -185,18 +144,11 @@ const CartPage = () => {
   };
 
   const handleQuantityChange = async (id: number, delta: number) => {
-    if (!user?.id) return setErrorMessage("Please log in to manage your cart.");
-
+    if (!user?.id) return setErrorMessage("Please log in.");
     const item = cartItems.find((i) => i.id === id);
-    if (!item) return;
-
-    if (item.quantity + delta > 10) {
-      setErrorMessage("Maximum quantity per item is 10");
+    if (!item || item.quantity + delta > 10 || item.quantity + delta < 1)
       return;
-    }
-
-    const newQuantity = Math.max(1, item.quantity + delta);
-
+    const newQuantity = item.quantity + delta;
     try {
       dispatch(updateQuantity({ id, quantity: newQuantity }));
       await cartService.updateCartQuantity(user.id, id, newQuantity);
@@ -208,58 +160,38 @@ const CartPage = () => {
   };
 
   const handleApplyCoupon = async () => {
-    if (!couponCode) {
-      setErrorMessage("Please enter a coupon code.");
-      return;
-    }
-
+    if (!couponCode) return setErrorMessage("Please enter a coupon code.");
     try {
       const coupon = await cartService.getCoupon(couponCode);
       if (coupon) {
-        setAppliedCoupon({
-          code: coupon.code,
-          discount_percentage: coupon.discount_percentage,
-        });
+        setAppliedCoupon(coupon);
         setSuccessMessage(
           `Coupon "${coupon.code}" applied! ${coupon.discount_percentage}% off.`
         );
         setCouponCode("");
       } else {
-        setErrorMessage("Invalid or expired coupon code.");
+        setErrorMessage("Invalid coupon code.");
         setAppliedCoupon(null);
       }
     } catch (error) {
       console.error("Error applying coupon:", error);
-      setErrorMessage("Failed to apply coupon. Please try again.");
-      setAppliedCoupon(null);
+      setErrorMessage("Failed to apply coupon.");
     }
   };
 
   const handleAddressChange = (e: React.ChangeEvent<HTMLInputElement>) => {
     const { name, value } = e.target;
-    setAddress((prev) => ({
-      ...prev,
-      [name]: value,
-    }));
+    setAddress((prev) => ({ ...prev, [name]: value }));
   };
 
   const handleSaveAddress = async () => {
     if (!user?.id) return;
-
     const requiredFields = ["street", "city", "state", "zipCode"];
-    const missingFields = requiredFields.filter(
-      (field) => !address[field as keyof UserAddress]
-    );
-
-    if (missingFields.length > 0) {
-      setErrorMessage(
-        `Please fill in all address fields: ${missingFields.join(", ")}`
-      );
+    if (requiredFields.some((field) => !address[field as keyof UserAddress])) {
+      setErrorMessage("Please fill in all address fields.");
       return;
     }
-
     setIsProcessing(true);
-
     try {
       const response = await fetch("/api/user", {
         method: "POST",
@@ -267,14 +199,10 @@ const CartPage = () => {
         body: JSON.stringify({ action: "save-address", address }),
         credentials: "include",
       });
-
       if (response.ok) {
         setSuccessMessage("Address saved successfully");
         setCheckoutStep(3);
-      } else {
-        const errorData = await response.json();
-        setErrorMessage(errorData.message || "Failed to save address");
-      }
+      } else throw new Error("Failed to save address");
     } catch (error) {
       console.error("Error saving address:", error);
       setErrorMessage("An error occurred while saving your address");
@@ -284,12 +212,22 @@ const CartPage = () => {
   };
 
   const handleCheckout = async () => {
-    if (!user?.id) return setErrorMessage("Please log in to checkout.");
-    if (!cartItems.length) return setErrorMessage("Your cart is empty!");
-
+    if (!user?.id || !cartItems.length)
+      return setErrorMessage("Cart is empty or user not logged in.");
     setIsProcessing(true);
     setErrorMessage("");
     setSuccessMessage("");
+
+    const subtotal = cartItems.reduce(
+      (sum, item) => sum + item.price * item.quantity,
+      0
+    );
+    const total = appliedCoupon
+      ? Math.max(
+          0,
+          subtotal - subtotal * (appliedCoupon.discount_percentage / 100)
+        )
+      : subtotal;
 
     try {
       if (
@@ -301,8 +239,7 @@ const CartPage = () => {
         throw new Error("Please provide a complete shipping address");
       }
 
-      // Save payment preference
-      const paymentResponse = await fetch("/api/user", {
+      await fetch("/api/user", {
         method: "POST",
         headers: { "Content-Type": "application/json" },
         body: JSON.stringify({
@@ -312,27 +249,32 @@ const CartPage = () => {
         credentials: "include",
       });
 
-      if (!paymentResponse.ok) {
-        const errorData = await paymentResponse.json();
-        throw new Error(
-          errorData.message || "Failed to save payment preference"
-        );
-      }
-
-      const subtotal = cartItems.reduce(
-        (sum, item) => sum + item.price * item.quantity,
-        0
-      );
-      const total = appliedCoupon
-        ? Math.max(
-            0,
-            subtotal - subtotal * (appliedCoupon.discount_percentage / 100)
-          )
-        : subtotal;
-
       if (paymentMethod === "phonePe") {
-        // Change endpoint from /api/payment to /api/create-phonepe-order
-        const paymentResponse = await fetch("/api/create-phonepe-order", {
+        const orderId = `order-${Date.now()}`;
+        const response = await fetch("/api/create-phonepe-order", {
+          method: "POST",
+          headers: { "Content-Type": "application/json" },
+          body: JSON.stringify({
+            cartItems,
+            amount: total,
+            userId: user.id,
+            address,
+            couponCode: appliedCoupon?.code,
+            orderId,
+          }),
+          credentials: "include",
+        });
+
+        const paymentData = await response.json();
+        if (!response.ok)
+          throw new Error(
+            paymentData.error || "Failed to initiate PhonePe payment"
+          );
+
+        window.location.href = paymentData.paymentUrl;
+      } else {
+        // COD handling remains unchanged
+        const codResponse = await fetch("/api/create-cod-order", {
           method: "POST",
           headers: { "Content-Type": "application/json" },
           body: JSON.stringify({
@@ -345,39 +287,16 @@ const CartPage = () => {
           credentials: "include",
         });
 
-        if (!paymentResponse.ok) {
-          const errorData = await paymentResponse.json();
-          if (paymentResponse.status === 404) {
-            throw new Error(
-              "Payment API endpoint not found. Please contact support."
-            );
-          }
-          throw new Error(
-            errorData.error || "Failed to initiate PhonePe payment"
-          );
-        }
-
-        const { paymentUrl } = await paymentResponse.json();
-        if (!paymentUrl) {
-          throw new Error("No payment URL received from server");
-        }
-
-        window.location.href = paymentUrl;
-      } else {
-        const { orderId } = await cartService.checkout(
-          user.id,
-          cartItems,
-          address,
-          paymentMethod,
-          appliedCoupon?.code
-        );
+        const codData = await codResponse.json();
+        if (!codResponse.ok)
+          throw new Error(codData.error || "Failed to create COD order");
 
         setSuccessMessage(
-          `Order placed successfully! Your order ID is ${orderId}`
+          `Order placed successfully! Your order ID is ${codData.orderId}`
         );
         dispatch(setCartItems([]));
         setAppliedCoupon(null);
-        setTimeout(() => router.push("/orders"), 2000);
+        setTimeout(() => router.push("/profile/orders"), 2000);
       }
     } catch (error: any) {
       console.error("Checkout error:", error);
@@ -391,433 +310,362 @@ const CartPage = () => {
     (sum, item) => sum + item.price * item.quantity,
     0
   );
-  const calculateTotalWithDiscount = () => {
-    if (!appliedCoupon) return subtotal;
-    const discount = subtotal * (appliedCoupon.discount_percentage / 100);
-    return Math.max(0, subtotal - discount);
-  };
-  const total = calculateTotalWithDiscount();
+  const total = appliedCoupon
+    ? Math.max(
+        0,
+        subtotal - subtotal * (appliedCoupon.discount_percentage / 100)
+      )
+    : subtotal;
 
-  // Renders the step indicator
-  const renderStepIndicator = () => {
-    return (
-      <div className="flex w-full mb-8 items-center">
+  const renderStepIndicator = () => (
+    <div className="flex w-full mb-8 items-center">
+      {[1, 2, 3].map((step) => (
         <div
+          key={step}
           className={`flex flex-col items-center w-1/3 ${
-            checkoutStep >= 1 ? "text-yellow-500" : THEMES[theme].text.muted
+            checkoutStep >= step ? "text-yellow-500" : THEMES[theme].text.muted
           }`}
         >
           <div
             className={`w-8 h-8 flex items-center justify-center rounded-full ${
-              checkoutStep >= 1
+              checkoutStep >= step
                 ? "bg-yellow-500 text-white"
                 : `bg-gray-200 ${THEMES[theme].text.muted}`
             }`}
           >
-            1
+            {step}
           </div>
-          <span className="text-sm mt-1">Cart</span>
-        </div>
-        <div
-          className={`h-1 w-full ${
-            checkoutStep >= 2 ? "bg-yellow-500" : "bg-gray-200"
-          }`}
-        ></div>
-        <div
-          className={`flex flex-col items-center w-1/3 ${
-            checkoutStep >= 2 ? "text-yellow-500" : THEMES[theme].text.muted
-          }`}
-        >
-          <div
-            className={`w-8 h-8 flex items-center justify-center rounded-full ${
-              checkoutStep >= 2
-                ? "bg-yellow-500 text-white"
-                : `bg-gray-200 ${THEMES[theme].text.muted}`
-            }`}
-          >
-            2
-          </div>
-          <span className="text-sm mt-1">Address</span>
-        </div>
-        <div
-          className={`h-1 w-full ${
-            checkoutStep >= 3 ? "bg-yellow-500" : "bg-gray-200"
-          }`}
-        ></div>
-        <div
-          className={`flex flex-col items-center w-1/3 ${
-            checkoutStep >= 3 ? "text-yellow-500" : THEMES[theme].text.muted
-          }`}
-        >
-          <div
-            className={`w-8 h-8 flex items-center justify-center rounded-full ${
-              checkoutStep >= 3
-                ? "bg-yellow-500 text-white"
-                : `bg-gray-200 ${THEMES[theme].text.muted}`
-            }`}
-          >
-            3
-          </div>
-          <span className="text-sm mt-1">Payment</span>
-        </div>
-      </div>
-    );
-  };
-
-  // Renders the cart items (Step 1)
-  const renderCartItems = () => {
-    return (
-      <div className="space-y-4">
-        {cartItems.map((item) => (
-          <div
-            key={item.id}
-            className={`flex items-center justify-between ${THEMES[theme].border} border-b py-6`}
-          >
-            <div className="flex items-center space-x-4">
-              <div className="relative w-20 h-20">
-                <Image
-                  src={item.image || "/placeholder-image.jpg"}
-                  unoptimized={true}
-                  alt={item.name}
-                  fill
-                  sizes="80px"
-                  className="object-cover rounded"
-                  onError={(e) =>
-                    (e.currentTarget.src = "/placeholder-image.jpg")
-                  }
-                />
-              </div>
-              <div className="flex-1 py-2">
-                <h3 className={`font-semibold ${THEMES[theme].text.primary}`}>
-                  {item.name}
-                </h3>
-                <p className={THEMES[theme].text.primary}>
-                  ${item.price.toFixed(2)}
-                </p>
-              </div>
-            </div>
-            <div className="flex items-center space-x-4">
-              <div
-                className={`flex items-center space-x-2 ${THEMES[theme].background.secondary} ${THEMES[theme].border} rounded`}
-              >
-                <button
-                  onClick={() => handleQuantityChange(item.id, -1)}
-                  className={`p-2 ${THEMES[theme].text.primary} hover:${THEMES[theme].dropdown.hover}`}
-                  disabled={item.quantity <= 1}
-                >
-                  <Minus className="w-5 h-5" />
-                </button>
-                <span className={`px-3 ${THEMES[theme].text.primary}`}>
-                  {item.quantity}
-                </span>
-                <button
-                  onClick={() => handleQuantityChange(item.id, 1)}
-                  className={`p-2 ${THEMES[theme].text.primary} hover:${THEMES[theme].dropdown.hover}`}
-                  disabled={item.quantity >= 10}
-                >
-                  <Plus className="w-5 h-5" />
-                </button>
-              </div>
-              <button
-                onClick={() => handleRemoveItem(item.id)}
-                className="text-red-500 hover:text-red-600"
-              >
-                <X className="w-6 h-6" />
-              </button>
-            </div>
-          </div>
-        ))}
-
-        {/* Coupon Code Section */}
-        <div className="mt-6 flex items-center space-x-4">
-          <input
-            type="text"
-            value={couponCode}
-            onChange={(e) => setCouponCode(e.target.value)}
-            placeholder="Enter coupon code"
-            className={`p-2 rounded ${THEMES[theme].border} ${THEMES[theme].background.secondary} ${THEMES[theme].text.primary} w-64`}
-          />
-          <button
-            onClick={handleApplyCoupon}
-            className={`px-4 py-2 rounded ${
-              theme === "light"
-                ? "bg-yellow-500 text-black hover:bg-yellow-600"
-                : "bg-yellow-600 text-white hover:bg-yellow-700"
-            }`}
-          >
-            Apply Coupon
-          </button>
-        </div>
-
-        {/* Total Section */}
-        <div className="text-right mt-6">
-          <p className={`text-lg ${THEMES[theme].text.secondary}`}>
-            Subtotal: ${subtotal.toFixed(2)}
-          </p>
-          {appliedCoupon && (
-            <p className={`text-lg ${THEMES[theme].text.secondary}`}>
-              Discount ({appliedCoupon.discount_percentage}%): -$
-              {(subtotal - total).toFixed(2)}
-            </p>
+          <span className="text-sm mt-1">
+            {["Cart", "Address", "Payment"][step - 1]}
+          </span>
+          {step < 3 && (
+            <div
+              className={`h-1 w-full ${
+                checkoutStep > step ? "bg-yellow-500" : "bg-gray-200"
+              }`}
+            ></div>
           )}
-          <p className={`text-xl font-bold ${THEMES[theme].text.primary}`}>
-            Total: ${total.toFixed(2)}
-          </p>
-          <button
-            onClick={() => setCheckoutStep(2)}
-            disabled={cartItems.length === 0}
-            className={`mt-4 px-6 py-2 rounded ${
-              theme === "light"
-                ? "bg-yellow-500 text-black hover:bg-yellow-600"
-                : "bg-yellow-600 text-white hover:bg-yellow-700"
-            } ${cartItems.length === 0 ? "opacity-50 cursor-not-allowed" : ""}`}
-          >
-            Proceed to Delivery{" "}
-            <ArrowRight className="inline-block ml-2 w-4 h-4" />
-          </button>
         </div>
+      ))}
+    </div>
+  );
+
+  const renderCartItems = () => (
+    <div className="space-y-4">
+      {cartItems.map((item) => (
+        <div
+          key={item.id}
+          className={`flex items-center justify-between ${THEMES[theme].border} border-b py-6`}
+        >
+          <div className="flex items-center space-x-4">
+            <div className="relative w-20 h-20">
+              <Image
+                src={item.image || "/placeholder-image.jpg"}
+                unoptimized={true}
+                alt={item.name}
+                fill
+                sizes="80px"
+                className="object-cover rounded"
+                onError={(e) =>
+                  (e.currentTarget.src = "/placeholder-image.jpg")
+                }
+              />
+            </div>
+            <div className="flex-1 py-2">
+              <h3 className={`font-semibold ${THEMES[theme].text.primary}`}>
+                {item.name}
+              </h3>
+              <p className={THEMES[theme].text.primary}>
+                ${item.price.toFixed(2)}
+              </p>
+            </div>
+          </div>
+          <div className="flex items-center space-x-4">
+            <div
+              className={`flex items-center space-x-2 ${THEMES[theme].background.secondary} ${THEMES[theme].border} rounded`}
+            >
+              <button
+                onClick={() => handleQuantityChange(item.id, -1)}
+                className={`p-2 ${THEMES[theme].text.primary}`}
+                disabled={item.quantity <= 1}
+              >
+                <Minus className="w-5 h-5" />
+              </button>
+              <span className={`px-3 ${THEMES[theme].text.primary}`}>
+                {item.quantity}
+              </span>
+              <button
+                onClick={() => handleQuantityChange(item.id, 1)}
+                className={`p-2 ${THEMES[theme].text.primary}`}
+                disabled={item.quantity >= 10}
+              >
+                <Plus className="w-5 h-5" />
+              </button>
+            </div>
+            <button
+              onClick={() => handleRemoveItem(item.id)}
+              className="text-red-500 hover:text-red-600"
+            >
+              <X className="w-6 h-6" />
+            </button>
+          </div>
+        </div>
+      ))}
+      <div className="mt-6 flex items-center space-x-4">
+        <input
+          type="text"
+          value={couponCode}
+          onChange={(e) => setCouponCode(e.target.value)}
+          placeholder="Enter coupon code"
+          className={`p-2 rounded ${THEMES[theme].border} ${THEMES[theme].background.secondary} ${THEMES[theme].text.primary} w-64`}
+        />
+        <button
+          onClick={handleApplyCoupon}
+          className={`px-4 py-2 rounded bg-yellow-500 text-black hover:bg-yellow-600`}
+        >
+          Apply Coupon
+        </button>
       </div>
-    );
-  };
-
-  // Renders the delivery address form (Step 2)
-  const renderDeliveryAddress = () => {
-    return (
-      <div
-        className={`p-4 rounded-lg ${THEMES[theme].background.secondary} ${THEMES[theme].border} border`}
-      >
-        <h2 className={`text-xl font-bold mb-4 ${THEMES[theme].text.primary}`}>
-          <MapPin className="inline-block mr-2 mb-1" /> Delivery Address
-        </h2>
-
-        {loadingSavedAddress ? (
-          <div className="flex justify-center py-6">
-            <p className={THEMES[theme].text.muted}>Loading saved address...</p>
-          </div>
-        ) : (
-          <div className="space-y-4">
-            <div>
-              <label
-                className={`block mb-1 ${THEMES[theme].text.secondary}`}
-                htmlFor="street"
-              >
-                Street Address
-              </label>
-              <input
-                type="text"
-                id="street"
-                name="street"
-                value={address.street}
-                onChange={handleAddressChange}
-                placeholder="123 Main St, Apt 4B"
-                className={`w-full p-2 rounded ${THEMES[theme].border} ${THEMES[theme].background.primary} ${THEMES[theme].text.primary}`}
-                required
-              />
-            </div>
-
-            <div className="grid grid-cols-2 gap-4">
-              <div>
-                <label
-                  className={`block mb-1 ${THEMES[theme].text.secondary}`}
-                  htmlFor="city"
-                >
-                  City
-                </label>
-                <input
-                  type="text"
-                  id="city"
-                  name="city"
-                  value={address.city}
-                  onChange={handleAddressChange}
-                  placeholder="Mumbai"
-                  className={`w-full p-2 rounded ${THEMES[theme].border} ${THEMES[theme].background.primary} ${THEMES[theme].text.primary}`}
-                  required
-                />
-              </div>
-
-              <div>
-                <label
-                  className={`block mb-1 ${THEMES[theme].text.secondary}`}
-                  htmlFor="state"
-                >
-                  State
-                </label>
-                <input
-                  type="text"
-                  id="state"
-                  name="state"
-                  value={address.state}
-                  onChange={handleAddressChange}
-                  placeholder="Maharashtra"
-                  className={`w-full p-2 rounded ${THEMES[theme].border} ${THEMES[theme].background.primary} ${THEMES[theme].text.primary}`}
-                  required
-                />
-              </div>
-            </div>
-
-            <div>
-              <label
-                className={`block mb-1 ${THEMES[theme].text.secondary}`}
-                htmlFor="zipCode"
-              >
-                PIN Code
-              </label>
-              <input
-                type="text"
-                id="zipCode"
-                name="zipCode"
-                value={address.zipCode}
-                onChange={handleAddressChange}
-                placeholder="400001"
-                className={`w-full p-2 rounded ${THEMES[theme].border} ${THEMES[theme].background.primary} ${THEMES[theme].text.primary}`}
-                required
-              />
-            </div>
-
-            <div className="flex justify-between pt-4">
-              <button
-                onClick={() => setCheckoutStep(1)}
-                className={`px-4 py-2 rounded ${THEMES[theme].border} ${THEMES[theme].background.primary} ${THEMES[theme].text.primary} hover:${THEMES[theme].dropdown.hover}`}
-              >
-                <ArrowLeft className="inline-block mr-2 w-4 h-4" /> Back to Cart
-              </button>
-
-              <button
-                onClick={handleSaveAddress}
-                disabled={isProcessing}
-                className={`px-6 py-2 rounded ${
-                  theme === "light"
-                    ? "bg-yellow-500 text-black hover:bg-yellow-600"
-                    : "bg-yellow-600 text-white hover:bg-yellow-700"
-                } ${isProcessing ? "opacity-50 cursor-not-allowed" : ""}`}
-              >
-                {isProcessing ? "Saving..." : "Continue to Payment"}{" "}
-                <ArrowRight className="inline-block ml-2 w-4 h-4" />
-              </button>
-            </div>
-          </div>
+      <div className="text-right mt-6">
+        <p className={`text-lg ${THEMES[theme].text.secondary}`}>
+          Subtotal: ${subtotal.toFixed(2)}
+        </p>
+        {appliedCoupon && (
+          <p className={`text-lg ${THEMES[theme].text.secondary}`}>
+            Discount ({appliedCoupon.discount_percentage}%): -$
+            {(subtotal - total).toFixed(2)}
+          </p>
         )}
+        <p className={`text-xl font-bold ${THEMES[theme].text.primary}`}>
+          Total: ${total.toFixed(2)}
+        </p>
+        <button
+          onClick={() => setCheckoutStep(2)}
+          disabled={cartItems.length === 0}
+          className={`mt-4 px-6 py-2 rounded bg-yellow-500 text-black hover:bg-yellow-600 ${
+            cartItems.length === 0 ? "opacity-50 cursor-not-allowed" : ""
+          }`}
+        >
+          Proceed to Delivery{" "}
+          <ArrowRight className="inline-block ml-2 w-4 h-4" />
+        </button>
       </div>
-    );
-  };
+    </div>
+  );
 
-  // Renders the payment method selection (Step 3)
-  const renderPaymentMethod = () => {
-    return (
-      <div
-        className={`p-4 rounded-lg ${THEMES[theme].background.secondary} ${THEMES[theme].border} border`}
-      >
-        <h2 className={`text-xl font-bold mb-4 ${THEMES[theme].text.primary}`}>
-          <CreditCard className="inline-block mr-2 mb-1" /> Payment Method
-        </h2>
-
+  const renderDeliveryAddress = () => (
+    <div
+      className={`p-4 rounded-lg ${THEMES[theme].background.secondary} ${THEMES[theme].border} border`}
+    >
+      <h2 className={`text-xl font-bold mb-4 ${THEMES[theme].text.primary}`}>
+        <MapPin className="inline-block mr-2 mb-1" /> Delivery Address
+      </h2>
+      {loadingSavedAddress ? (
+        <div className="flex justify-center py-6">
+          <p className={THEMES[theme].text.muted}>Loading saved address...</p>
+        </div>
+      ) : (
         <div className="space-y-4">
-          <div
-            className={`p-4 rounded-lg ${
-              THEMES[theme].border
-            } border cursor-pointer ${
-              paymentMethod === "phonePe"
-                ? "border-yellow-500 bg-yellow-50"
-                : ""
-            }`}
-            onClick={() => setPaymentMethod("phonePe")}
-          >
-            <label className="flex items-center cursor-pointer">
-              <input
-                type="radio"
-                name="paymentMethod"
-                checked={paymentMethod === "phonePe"}
-                onChange={() => setPaymentMethod("phonePe")}
-                className="mr-2"
-              />
-              <div>
-                <span className={`font-medium ${THEMES[theme].text.primary}`}>
-                  PhonePe Gateway
-                </span>
-                <p className={`text-sm ${THEMES[theme].text.muted}`}>
-                  Pay securely using UPI, credit/debit cards, or netbanking
-                </p>
-              </div>
+          <div>
+            <label
+              className={`block mb-1 ${THEMES[theme].text.secondary}`}
+              htmlFor="street"
+            >
+              Street Address
             </label>
+            <input
+              type="text"
+              id="street"
+              name="street"
+              value={address.street}
+              onChange={handleAddressChange}
+              placeholder="123 Main St"
+              className={`w-full p-2 rounded ${THEMES[theme].border} ${THEMES[theme].background.primary} ${THEMES[theme].text.primary}`}
+              required
+            />
           </div>
-
-          <div
-            className={`p-4 rounded-lg ${
-              THEMES[theme].border
-            } border cursor-pointer ${
-              paymentMethod === "cod" ? "border-yellow-500 bg-yellow-50" : ""
-            }`}
-            onClick={() => setPaymentMethod("cod")}
-          >
-            <label className="flex items-center cursor-pointer">
+          <div className="grid grid-cols-2 gap-4">
+            <div>
+              <label
+                className={`block mb-1 ${THEMES[theme].text.secondary}`}
+                htmlFor="city"
+              >
+                City
+              </label>
               <input
-                type="radio"
-                name="paymentMethod"
-                checked={paymentMethod === "cod"}
-                onChange={() => setPaymentMethod("cod")}
-                className="mr-2"
+                type="text"
+                id="city"
+                name="city"
+                value={address.city}
+                onChange={handleAddressChange}
+                placeholder="Mumbai"
+                className={`w-full p-2 rounded ${THEMES[theme].border} ${THEMES[theme].background.primary} ${THEMES[theme].text.primary}`}
+                required
               />
-              <div>
-                <span className={`font-medium ${THEMES[theme].text.primary}`}>
-                  Cash on Delivery
-                </span>
-                <p className={`text-sm ${THEMES[theme].text.muted}`}>
-                  Pay with cash when your order is delivered
-                </p>
-              </div>
-            </label>
-          </div>
-
-          {/* Order Summary */}
-          <div className={`mt-6 p-4 rounded-lg ${THEMES[theme].border} border`}>
-            <h3 className={`font-medium mb-2 ${THEMES[theme].text.primary}`}>
-              Order Summary
-            </h3>
-            <div className={`text-sm ${THEMES[theme].text.secondary}`}>
-              <p>
-                Items: {cartItems.reduce((sum, item) => sum + item.quantity, 0)}
-              </p>
-              <p>Subtotal: ${subtotal.toFixed(2)}</p>
-              {appliedCoupon && (
-                <p>Discount: -${(subtotal - total).toFixed(2)}</p>
-              )}
-              <p className={`font-bold mt-2 ${THEMES[theme].text.primary}`}>
-                Total: ${total.toFixed(2)}
-              </p>
+            </div>
+            <div>
+              <label
+                className={`block mb-1 ${THEMES[theme].text.secondary}`}
+                htmlFor="state"
+              >
+                State
+              </label>
+              <input
+                type="text"
+                id="state"
+                name="state"
+                value={address.state}
+                onChange={handleAddressChange}
+                placeholder="Maharashtra"
+                className={`w-full p-2 rounded ${THEMES[theme].border} ${THEMES[theme].background.primary} ${THEMES[theme].text.primary}`}
+                required
+              />
             </div>
           </div>
-
+          <div>
+            <label
+              className={`block mb-1 ${THEMES[theme].text.secondary}`}
+              htmlFor="zipCode"
+            >
+              PIN Code
+            </label>
+            <input
+              type="text"
+              id="zipCode"
+              name="zipCode"
+              value={address.zipCode}
+              onChange={handleAddressChange}
+              placeholder="400001"
+              className={`w-full p-2 rounded ${THEMES[theme].border} ${THEMES[theme].background.primary} ${THEMES[theme].text.primary}`}
+              required
+            />
+          </div>
           <div className="flex justify-between pt-4">
             <button
-              onClick={() => setCheckoutStep(2)}
-              className={`px-4 py-2 rounded ${THEMES[theme].border} ${THEMES[theme].background.primary} ${THEMES[theme].text.primary} hover:${THEMES[theme].dropdown.hover}`}
+              onClick={() => setCheckoutStep(1)}
+              className={`px-4 py-2 rounded ${THEMES[theme].border} ${THEMES[theme].background.primary} ${THEMES[theme].text.primary}`}
             >
-              <ArrowLeft className="inline-block mr-2 w-4 h-4" /> Back to
-              Address
+              <ArrowLeft className="inline-block mr-2 w-4 h-4" /> Back to Cart
             </button>
-
             <button
-              onClick={handleCheckout}
+              onClick={handleSaveAddress}
               disabled={isProcessing}
-              className={`px-6 py-2 rounded ${
-                theme === "light"
-                  ? "bg-yellow-500 text-black hover:bg-yellow-600"
-                  : "bg-yellow-600 text-white hover:bg-yellow-700"
-              } ${isProcessing ? "opacity-50 cursor-not-allowed" : ""}`}
+              className={`px-6 py-2 rounded bg-yellow-500 text-black hover:bg-yellow-600 ${
+                isProcessing ? "opacity-50 cursor-not-allowed" : ""
+              }`}
             >
-              {isProcessing
-                ? "Processing..."
-                : paymentMethod === "cod"
-                ? "Place Order"
-                : "Proceed to Payment"}
+              {isProcessing ? "Saving..." : "Continue to Payment"}{" "}
+              <ArrowRight className="inline-block ml-2 w-4 h-4" />
             </button>
           </div>
         </div>
-      </div>
-    );
-  };
+      )}
+    </div>
+  );
 
-  if (isLoading) {
+  const renderPaymentMethod = () => (
+    <div
+      className={`p-4 rounded-lg ${THEMES[theme].background.secondary} ${THEMES[theme].border} border`}
+    >
+      <h2 className={`text-xl font-bold mb-4 ${THEMES[theme].text.primary}`}>
+        <CreditCard className="inline-block mr-2 mb-1" /> Payment Method
+      </h2>
+      <div className="space-y-4">
+        <div
+          className={`p-4 rounded-lg ${
+            THEMES[theme].border
+          } border cursor-pointer ${
+            paymentMethod === "phonePe" ? "border-yellow-500 bg-yellow-50" : ""
+          }`}
+          onClick={() => setPaymentMethod("phonePe")}
+        >
+          <label className="flex items-center cursor-pointer">
+            <input
+              type="radio"
+              name="paymentMethod"
+              checked={paymentMethod === "phonePe"}
+              onChange={() => setPaymentMethod("phonePe")}
+              className="mr-2"
+            />
+            <div>
+              <span className={`font-medium ${THEMES[theme].text.primary}`}>
+                PhonePe Gateway
+              </span>
+              <p className={`text-sm ${THEMES[theme].text.muted}`}>
+                Pay securely using UPI
+              </p>
+            </div>
+          </label>
+        </div>
+        <div
+          className={`p-4 rounded-lg ${
+            THEMES[theme].border
+          } border cursor-pointer ${
+            paymentMethod === "cod" ? "border-yellow-500 bg-yellow-50" : ""
+          }`}
+          onClick={() => setPaymentMethod("cod")}
+        >
+          <label className="flex items-center cursor-pointer">
+            <input
+              type="radio"
+              name="paymentMethod"
+              checked={paymentMethod === "cod"}
+              onChange={() => setPaymentMethod("cod")}
+              className="mr-2"
+            />
+            <div>
+              <span className={`font-medium ${THEMES[theme].text.primary}`}>
+                Cash on Delivery
+              </span>
+              <p className={`text-sm ${THEMES[theme].text.muted}`}>
+                Pay with cash when delivered
+              </p>
+            </div>
+          </label>
+        </div>
+        <div className={`mt-6 p-4 rounded-lg ${THEMES[theme].border} border`}>
+          <h3 className={`font-medium mb-2 ${THEMES[theme].text.primary}`}>
+            Order Summary
+          </h3>
+          <div className={`text-sm ${THEMES[theme].text.secondary}`}>
+            <p>
+              Items: {cartItems.reduce((sum, item) => sum + item.quantity, 0)}
+            </p>
+            <p>Subtotal: ${subtotal.toFixed(2)}</p>
+            {appliedCoupon && (
+              <p>Discount: -${(subtotal - total).toFixed(2)}</p>
+            )}
+            <p className={`font-bold mt-2 ${THEMES[theme].text.primary}`}>
+              Total: ${total.toFixed(2)}
+            </p>
+          </div>
+        </div>
+        <div className="flex justify-between pt-4">
+          <button
+            onClick={() => setCheckoutStep(2)}
+            className={`px-4 py-2 rounded ${THEMES[theme].border} ${THEMES[theme].background.primary} ${THEMES[theme].text.primary}`}
+          >
+            <ArrowLeft className="inline-block mr-2 w-4 h-4" /> Back to Address
+          </button>
+          <button
+            onClick={handleCheckout}
+            disabled={isProcessing}
+            className={`px-6 py-2 rounded bg-yellow-500 text-black hover:bg-yellow-600 ${
+              isProcessing ? "opacity-50 cursor-not-allowed" : ""
+            }`}
+          >
+            {isProcessing
+              ? "Processing..."
+              : paymentMethod === "cod"
+              ? "Place Order"
+              : "Proceed to Payment"}
+          </button>
+        </div>
+      </div>
+    </div>
+  );
+
+  if (isLoading)
     return (
       <div
         className={`container mx-auto p-4 ${THEMES[theme].background.primary}`}
@@ -830,9 +678,7 @@ const CartPage = () => {
         </div>
       </div>
     );
-  }
-
-  if (!user) {
+  if (!user)
     return (
       <div
         className={`container mx-auto p-4 ${THEMES[theme].background.primary}`}
@@ -853,9 +699,7 @@ const CartPage = () => {
         </div>
       </div>
     );
-  }
-
-  if (cartItems.length === 0 && checkoutStep === 1) {
+  if (cartItems.length === 0 && checkoutStep === 1)
     return (
       <div
         className={`container mx-auto p-4 ${THEMES[theme].background.primary}`}
@@ -876,7 +720,6 @@ const CartPage = () => {
         </div>
       </div>
     );
-  }
 
   return (
     <div
@@ -885,25 +728,23 @@ const CartPage = () => {
       <h1 className={`text-2xl font-bold mb-6 ${THEMES[theme].text.primary}`}>
         Checkout
       </h1>
-
       {renderStepIndicator()}
-
       {errorMessage && (
         <div className="bg-red-100 border border-red-400 text-red-700 px-4 py-3 rounded mb-4">
           {errorMessage}
         </div>
       )}
-
       {successMessage && (
         <div className="bg-green-100 border border-green-400 text-green-700 px-4 py-3 rounded mb-4">
           {successMessage}
         </div>
       )}
-
       <div className="mt-6">
-        {checkoutStep === 1 && renderCartItems()}
-        {checkoutStep === 2 && renderDeliveryAddress()}
-        {checkoutStep === 3 && renderPaymentMethod()}
+        {checkoutStep === 1
+          ? renderCartItems()
+          : checkoutStep === 2
+          ? renderDeliveryAddress()
+          : renderPaymentMethod()}
       </div>
     </div>
   );
