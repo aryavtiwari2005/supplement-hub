@@ -376,7 +376,7 @@ const CartPage = () => {
                 {item.name}
               </h3>
               <p className={THEMES[theme].text.primary}>
-                ${item.price.toFixed(2)}
+                ₹{item.price.toFixed(2)}
               </p>
             </div>
           </div>
@@ -428,16 +428,16 @@ const CartPage = () => {
       </div>
       <div className="text-right mt-6">
         <p className={`text-lg ${THEMES[theme].text.secondary}`}>
-          Subtotal: ${subtotal.toFixed(2)}
+          Subtotal: ₹{subtotal.toFixed(2)}
         </p>
         {appliedCoupon && (
           <p className={`text-lg ${THEMES[theme].text.secondary}`}>
-            Discount ({appliedCoupon.discount_percentage}%): -$
+            Discount ({appliedCoupon.discount_percentage}%): -₹
             {(subtotal - total).toFixed(2)}
           </p>
         )}
         <p className={`text-xl font-bold ${THEMES[theme].text.primary}`}>
-          Total: ${total.toFixed(2)}
+          Total: ₹{total.toFixed(2)}
         </p>
         <button
           onClick={() => setCheckoutStep(2)}
@@ -631,12 +631,12 @@ const CartPage = () => {
             <p>
               Items: {cartItems.reduce((sum, item) => sum + item.quantity, 0)}
             </p>
-            <p>Subtotal: ${subtotal.toFixed(2)}</p>
+            <p>Subtotal: ₹{subtotal.toFixed(2)}</p>
             {appliedCoupon && (
-              <p>Discount: -${(subtotal - total).toFixed(2)}</p>
+              <p>Discount: -₹{(subtotal - total).toFixed(2)}</p>
             )}
             <p className={`font-bold mt-2 ${THEMES[theme].text.primary}`}>
-              Total: ${total.toFixed(2)}
+              Total: ₹{total.toFixed(2)}
             </p>
           </div>
         </div>

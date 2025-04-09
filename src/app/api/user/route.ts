@@ -16,6 +16,7 @@ interface User {
   paymentPreference?: string;
   cart?: any[];
   orders?: any[];
+  scoopPoints?: number; // Added Scoop Points
 }
 
 interface Address {
@@ -36,7 +37,6 @@ export async function GET(req: NextRequest) {
     };
     const userId = decoded.userId;
 
-    // Fetch user with orders and address as a single object
     const { data: user, error } = await supabase
       .from("users_onescoop")
       .select(
@@ -47,6 +47,7 @@ export async function GET(req: NextRequest) {
         phone,
         cart,
         orders,
+        scoop_points,
         address:users_address!users_address_user_id_fkey(street, city, state, zip_code),
         payment_preference
       `
@@ -58,14 +59,7 @@ export async function GET(req: NextRequest) {
     if (!user)
       return NextResponse.json({ message: "User not found" }, { status: 404 });
 
-    // Transform orders for client
-    const orders =
-      user.orders?.map((order: any) => ({
-        ...order,
-        // Add any necessary transformations
-      })) || [];
-
-    // Handle address as a single object (not an array)
+    const orders = user.orders?.map((order: any) => ({ ...order })) || [];
     const addressData =
       Array.isArray(user.address) && user.address.length > 0
         ? {
@@ -89,10 +83,11 @@ export async function GET(req: NextRequest) {
               street: addressData.street,
               city: addressData.city,
               state: addressData.state,
-              zipCode: addressData.zip_code, // Map zip_code to zipCode
+              zipCode: addressData.zip_code,
             }
           : undefined,
         paymentPreference: user.payment_preference,
+        scoopPoints: user.scoop_points || 0, // Include Scoop Points
       },
     });
   } catch (error: any) {
@@ -105,7 +100,8 @@ export async function GET(req: NextRequest) {
 
 export async function POST(req: NextRequest) {
   try {
-    const { action, address, paymentPreference } = await req.json();
+    const { action, address, paymentPreference, scoopPoints } =
+      await req.json();
     const token = req.cookies.get("authToken")?.value;
 
     if (!token) {
@@ -130,13 +126,12 @@ export async function POST(req: NextRequest) {
     }
 
     if (action === "save-address" && address) {
-      // Upsert address
       const { error } = await supabase.from("users_address").upsert({
         user_id: userId,
         street: address.street,
         city: address.city,
         state: address.state,
-        zip_code: address.zipCode, // Match DB column name
+        zip_code: address.zipCode,
       });
 
       if (error) throw error;
@@ -151,6 +146,16 @@ export async function POST(req: NextRequest) {
 
       if (error) throw error;
       return NextResponse.json({ message: "Payment preference saved" });
+    }
+
+    if (action === "update-scoop-points" && scoopPoints !== undefined) {
+      const { error } = await supabase
+        .from("users_onescoop")
+        .update({ scoop_points: scoopPoints })
+        .eq("id", userId);
+
+      if (error) throw error;
+      return NextResponse.json({ message: "Scoop Points updated" });
     }
 
     return NextResponse.json({ message: "Invalid action" }, { status: 400 });

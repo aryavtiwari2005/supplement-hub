@@ -21,6 +21,7 @@ export async function GET() {
     const { data, error } = await supabase
       .from("products")
       .select("brand")
+      .limit(10)
       .not("brand", "is", null); // Exclude null brands
 
     if (error) {

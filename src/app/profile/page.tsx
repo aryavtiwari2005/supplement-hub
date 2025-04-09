@@ -105,11 +105,11 @@ export default function ProfilePage() {
                   <div className="flex-1">
                     <p className="text-gray-800 font-medium">{item.name}</p>
                     <p className="text-gray-600">
-                      ${item.price.toFixed(2)} x {item.quantity}
+                      ₹{item.price.toFixed(2)} x {item.quantity}
                     </p>
                   </div>
                   <p className="text-gray-800 font-medium">
-                    ${(item.price * item.quantity).toFixed(2)}
+                    ₹{(item.price * item.quantity).toFixed(2)}
                   </p>
                 </div>
               ))}

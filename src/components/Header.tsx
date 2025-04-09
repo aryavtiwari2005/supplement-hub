@@ -1,6 +1,7 @@
 "use client";
 
 import { useRouter } from "next/navigation";
+import jwt, { JwtPayload } from "jsonwebtoken";
 import React, {
   useState,
   useEffect,
@@ -25,6 +26,9 @@ import {
   Zap,
   Heart,
   ChevronRight,
+  Mail,
+  Lock,
+  ArrowRight,
 } from "lucide-react";
 import Image from "next/image";
 import { useSelector, useDispatch } from "react-redux";
@@ -34,7 +38,16 @@ import {
   removeFromCart,
   updateQuantity,
 } from "@/redux/cartSlice";
-import { createClient } from "@supabase/supabase-js"; // Import Supabase client
+import { createClient } from "@supabase/supabase-js";
+
+const supabaseUrl = process.env.NEXT_PUBLIC_SUPABASE_URL;
+const supabaseAnonKey = process.env.NEXT_PUBLIC_SUPABASE_ANON_KEY;
+
+if (!supabaseUrl || !supabaseAnonKey) {
+  throw new Error("Missing Supabase environment variables");
+}
+
+const supabase = createClient(supabaseUrl, supabaseAnonKey);
 
 type Theme = "light" | "dark";
 
@@ -126,13 +139,34 @@ interface DropdownMenu {
   href?: string;
 }
 
+interface User {
+  id: number;
+}
+
+// Define the expected JWT payload type
+interface JwtPayloadWithUserId extends JwtPayload {
+  userId: number;
+}
+
+// Define the user data type from users_onescoop
+interface UserData {
+  id: number;
+  email: string;
+  scoop_points: number;
+  orders: any[];
+}
+
+const dropdownVariants = {
+  hidden: { opacity: 0, y: -10 },
+  visible: { opacity: 1, y: 0, transition: { duration: 0.2 } },
+  exit: { opacity: 0, y: -10, transition: { duration: 0.2 } },
+};
+
 export default function Header() {
   const { theme, toggleTheme } = useTheme();
-  const router = useRouter();
   const dispatch = useDispatch();
   const cartItems = useSelector(selectCartItems);
   const cartQuantity = useSelector(selectCartQuantity);
-  const [isCartOpen, setIsCartOpen] = useState(false);
   const [searchQuery, setSearchQuery] = useState("");
   const [activeDropdown, setActiveDropdown] = useState<string | null>(null);
   const [isMobileMenuOpen, setIsMobileMenuOpen] = useState(false);
@@ -141,6 +175,14 @@ export default function Header() {
   );
   const [brandItems, setBrandItems] = useState<DropdownMenuItem[]>([]);
   const [topBlogs, setTopBlogs] = useState<SubMenuItem[]>([]); // State for top 5 blogs
+  const [isCartOpen, setIsCartOpen] = useState(false);
+  const [isProfileOpen, setIsProfileOpen] = useState(false);
+  const [user, setUser] = useState<User | null>(null); // Explicitly type as User | null
+  const [userData, setUserData] = useState<UserData | null>(null);
+  const [email, setEmail] = useState("");
+  const [password, setPassword] = useState("");
+  const [loginError, setLoginError] = useState("");
+  const router = useRouter();
 
   // Fetch brands from Supabase via API route
   useEffect(() => {
@@ -201,6 +243,89 @@ export default function Header() {
 
   const handleRemoveItem = (id: number) => {
     dispatch(removeFromCart(id));
+  };
+
+  useEffect(() => {
+    // Fetch user data based on JWT token in cookies
+    const fetchUserData = async () => {
+      const token = document.cookie
+        .split("; ")
+        .find((row) => row.startsWith("authToken="))
+        ?.split("=")[1];
+
+      if (!token) {
+        setUser(null);
+        setUserData(null);
+        return;
+      }
+
+      try {
+        const jwtSecret =
+          process.env.NEXT_PUBLIC_JWT_SECRET || process.env.JWT_SECRET;
+        if (!jwtSecret) throw new Error("JWT_SECRET is not defined");
+
+        const decoded = jwt.verify(token, jwtSecret) as JwtPayloadWithUserId;
+        setUser({ id: decoded.userId });
+
+        const { data, error } = await supabase
+          .from("users_onescoop")
+          .select("id, email, scoop_points, orders")
+          .eq("id", decoded.userId)
+          .single();
+
+        if (error) throw error;
+        setUserData(data);
+      } catch (err) {
+        console.error("Error verifying token or fetching user data:", err);
+        setUser(null);
+        setUserData(null);
+      }
+    };
+
+    fetchUserData();
+  }, []);
+
+  const handleLogin = async (e: React.FormEvent<HTMLFormElement>) => {
+    e.preventDefault();
+    setLoginError("");
+
+    try {
+      const res = await fetch("/api/login", {
+        method: "POST",
+        headers: { "Content-Type": "application/json" },
+        body: JSON.stringify({ email, password }),
+      });
+
+      if (res.ok) {
+        const { data, error } = await supabase
+          .from("users_onescoop")
+          .select("id, email, scoop_points, orders")
+          .eq("email", email)
+          .single();
+
+        if (error) throw error;
+
+        setUser({ id: data.id });
+        setUserData(data);
+        setEmail("");
+        setPassword("");
+        setIsProfileOpen(false);
+      } else {
+        const { message } = await res.json();
+        setLoginError(message);
+      }
+    } catch (err) {
+      setLoginError("Something went wrong. Please try again.");
+      console.error("Login error:", err);
+    }
+  };
+
+  const handleLogout = () => {
+    document.cookie =
+      "authToken=; expires=Thu, 01 Jan 1970 00:00:00 GMT; path=/";
+    setUser(null);
+    setUserData(null);
+    setIsProfileOpen(false);
   };
 
   // Updated Dropdown Menus with dynamic Brands and Top Blogs
@@ -722,7 +847,7 @@ export default function Header() {
         {/* Right side controls */}
         <div className="flex items-center space-x-4">
           {/* Search */}
-          <div className="hidden md:block relative flex-grow max-w-xs">
+          {/* <div className="hidden md:block relative flex-grow max-w-xs">
             <div className="absolute inset-y-0 left-0 pl-3 flex items-center pointer-events-none">
               <Search className={`h-5 w-5 ${THEMES[theme].text.muted}`} />
             </div>
@@ -743,26 +868,29 @@ export default function Header() {
                 cursor-pointer
               `}
             />
-          </div>
+          </div> */}
 
-          <div className="flex items-center space-x-2">
-            <ThemeToggle />
+          <div className="flex items-center space-x-6">
+            {/* <ThemeToggle /> */}
 
             {/* Shopping Cart with Dropdown */}
             <div className="relative">
               <button
                 className={`
-                  ${THEMES[theme].text.primary} 
-                  hover:text-yellow-500 
-                  transition-colors
-                  relative
-                  cursor-pointer
-                `}
+            flex items-center space-x-2
+            ${THEMES[theme].text.primary} 
+            hover:text-yellow-500 
+            transition-colors
+            px-3 py-2 rounded-md
+            ${THEMES[theme].background.secondary}
+            cursor-pointer
+          `}
                 onClick={() => setIsCartOpen(!isCartOpen)}
               >
-                <ShoppingCart />
+                <ShoppingCart className="w-6 h-6" />
+                <span className="text-sm font-medium">Cart</span>
                 {cartQuantity > 0 && (
-                  <span className="absolute -top-2 -right-2 bg-red-500 text-white text-xs rounded-full h-5 w-5 flex items-center justify-center">
+                  <span className="bg-red-500 text-white text-xs rounded-full h-5 w-5 flex items-center justify-center">
                     {cartQuantity}
                   </span>
                 )}
@@ -776,42 +904,43 @@ export default function Header() {
                     animate="visible"
                     exit="exit"
                     className={`
-                      absolute right-0 top-full mt-2 w-96
-                      ${THEMES[theme].dropdown.background}
-                      rounded-lg shadow-xl
-                      border ${THEMES[theme].border}
-                      z-50
-                    `}
+                absolute right-0 top-full mt-2 w-96
+                ${THEMES[theme].dropdown.background}
+                rounded-lg shadow-xl
+                border ${THEMES[theme].border}
+                z-50
+              `}
                   >
-                    <div className="p-4">
+                    <div className="p-6">
                       <h3
-                        className={`${THEMES[theme].text.primary} font-semibold mb-4`}
+                        className={`${THEMES[theme].text.primary} font-semibold text-lg mb-4`}
                       >
                         Shopping Cart ({cartQuantity})
                       </h3>
                       {cartItems.length === 0 ? (
                         <div
-                          className={`${THEMES[theme].text.muted} text-center py-4`}
+                          className={`${THEMES[theme].text.muted} text-center py-6`}
                         >
-                          Your cart is empty
+                          <p>Your cart is empty</p>
                           <Link
                             href="/products"
-                            className={`block text-yellow-500 hover:text-yellow-600 cursor-pointer`}
+                            className={`mt-2 inline-block text-yellow-500 hover:text-yellow-600 font-medium cursor-pointer`}
+                            onClick={() => setIsCartOpen(false)}
                           >
                             Start Shopping
                           </Link>
                         </div>
                       ) : (
                         <>
-                          <div className="max-h-64 overflow-y-auto space-y-4">
+                          <div className="max-h-72 overflow-y-auto space-y-6">
                             {cartItems.map((item) => (
                               <div
                                 key={item.id}
-                                className="flex items-center space-x-2"
+                                className="flex items-center space-x-4 border-b pb-4"
                               >
                                 <div className="flex-1">
                                   <p
-                                    className={`${THEMES[theme].text.primary}`}
+                                    className={`${THEMES[theme].text.primary} font-medium`}
                                   >
                                     {item.name}
                                   </p>
@@ -819,13 +948,14 @@ export default function Header() {
                                     <p
                                       className={`${THEMES[theme].text.muted} text-sm`}
                                     >
-                                      {item.selectedVariant}
+                                      Variant: {item.selectedVariant}
                                     </p>
                                   )}
                                   <p
-                                    className={`${THEMES[theme].text.primary}`}
+                                    className={`${THEMES[theme].text.primary} text-sm`}
                                   >
-                                    ${(item.price * item.quantity).toFixed(2)}
+                                    ₹{(item.price * item.quantity).toFixed(2)}{" "}
+                                    (₹{item.price} x {item.quantity})
                                   </p>
                                 </div>
                                 <select
@@ -836,7 +966,7 @@ export default function Header() {
                                       Number(e.target.value)
                                     )
                                   }
-                                  className={`p-1 rounded ${THEMES[theme].background.secondary} cursor-pointer`}
+                                  className={`p-1 rounded ${THEMES[theme].background.secondary} border ${THEMES[theme].border} cursor-pointer`}
                                 >
                                   {[...Array(10)].map((_, i) => (
                                     <option key={i + 1} value={i + 1}>
@@ -848,22 +978,36 @@ export default function Header() {
                                   onClick={() => handleRemoveItem(item.id)}
                                   className="text-red-500 hover:text-red-600 cursor-pointer"
                                 >
-                                  <X className="w-4 h-4" />
+                                  <X className="w-5 h-5" />
                                 </button>
                               </div>
                             ))}
                           </div>
-                          <Link
-                            href="/cart"
-                            className={`mt-4 block text-center py-2 rounded w-full cursor-pointer ${
-                              theme === "light"
-                                ? "bg-yellow-500 text-black hover:bg-yellow-600"
-                                : "bg-yellow-600 text-white hover:bg-yellow-700"
-                            }`}
-                            onClick={() => setIsCartOpen(false)}
-                          >
-                            View Full Cart
-                          </Link>
+                          <div className="mt-6 border-t pt-4">
+                            <p
+                              className={`${THEMES[theme].text.primary} font-semibold`}
+                            >
+                              Subtotal: ₹
+                              {cartItems
+                                .reduce(
+                                  (sum, item) =>
+                                    sum + item.price * item.quantity,
+                                  0
+                                )
+                                .toFixed(2)}
+                            </p>
+                            <Link
+                              href="/cart"
+                              className={`mt-4 block text-center py-3 rounded w-full cursor-pointer ${
+                                theme === "light"
+                                  ? "bg-yellow-500 text-black hover:bg-yellow-600"
+                                  : "bg-yellow-600 text-white hover:bg-yellow-700"
+                              } transition-colors font-semibold`}
+                              onClick={() => setIsCartOpen(false)}
+                            >
+                              View Cart & Checkout
+                            </Link>
+                          </div>
                         </>
                       )}
                     </div>
@@ -872,19 +1016,164 @@ export default function Header() {
               </AnimatePresence>
             </div>
 
-            {/* User Button */}
-            <button
-              className={`
-                ${THEMES[theme].text.primary} 
-                hover:text-yellow-500 
-                transition-colors
-                cursor-pointer
+            {/* Profile Button with Login/Profile Dropdown */}
+            <div className="relative">
+              <button
+                className={`
+            flex items-center space-x-2
+            ${THEMES[theme].text.primary} 
+            hover:text-yellow-500 
+            transition-colors
+            px-3 py-2 rounded-md
+            ${THEMES[theme].background.secondary}
+            cursor-pointer
+          `}
+                onClick={() => setIsProfileOpen(!isProfileOpen)}
+              >
+                <User className="w-6 h-6" />
+                <span className="text-sm font-medium">
+                  {user ? "Profile" : "Login"}
+                </span>
+              </button>
+
+              <AnimatePresence>
+                {isProfileOpen && (
+                  <motion.div
+                    variants={dropdownVariants}
+                    initial="hidden"
+                    animate="visible"
+                    exit="exit"
+                    className={`
+                absolute right-0 top-full mt-2 w-72
+                ${THEMES[theme].dropdown.background}
+                rounded-lg shadow-xl
+                border ${THEMES[theme].border}
+                z-50
               `}
-            >
-              <Link href="/login">
-                <User />
-              </Link>
-            </button>
+                  >
+                    <div className="p-4">
+                      {user && userData ? (
+                        <>
+                          <p
+                            className={`${THEMES[theme].text.primary} font-semibold`}
+                          >
+                            Hello, {userData.email}
+                          </p>
+                          <p className={`${THEMES[theme].text.muted} text-sm`}>
+                            Scoop Points: {userData.scoop_points || 0}
+                          </p>
+                          <div className="mt-4 space-y-2">
+                            <Link
+                              href="/profile"
+                              className={`${THEMES[theme].text.primary} block hover:text-yellow-500`}
+                              onClick={() => setIsProfileOpen(false)}
+                            >
+                              My Profile
+                            </Link>
+                            <Link
+                              href="/profile/orders"
+                              className={`${THEMES[theme].text.primary} block hover:text-yellow-500`}
+                              onClick={() => setIsProfileOpen(false)}
+                            >
+                              My Orders
+                            </Link>
+                            <button
+                              onClick={handleLogout}
+                              className="w-full text-left text-red-500 hover:text-red-600"
+                            >
+                              Logout
+                            </button>
+                          </div>
+                        </>
+                      ) : (
+                        <form onSubmit={handleLogin} className="space-y-4">
+                          <div>
+                            <label
+                              className={`block mb-1 ${THEMES[theme].text.secondary}`}
+                            >
+                              Email
+                            </label>
+                            <div className="relative">
+                              <Mail
+                                className={`absolute left-3 top-1/2 transform -translate-y-1/2 w-4 h-4 ${THEMES[theme].text.muted}`}
+                              />
+                              <input
+                                type="email"
+                                value={email}
+                                onChange={(e) => setEmail(e.target.value)}
+                                className={`
+                            w-full pl-10 pr-3 py-2 rounded-md
+                            ${THEMES[theme].background.primary}
+                            ${THEMES[theme].text.primary}
+                            ${THEMES[theme].border}
+                            focus:outline-none focus:ring-2 focus:ring-yellow-500
+                          `}
+                                placeholder="Enter your email"
+                                required
+                              />
+                            </div>
+                          </div>
+                          <div>
+                            <label
+                              className={`block mb-1 ${THEMES[theme].text.secondary}`}
+                            >
+                              Password
+                            </label>
+                            <div className="relative">
+                              <Lock
+                                className={`absolute left-3 top-1/2 transform -translate-y-1/2 w-4 h-4 ${THEMES[theme].text.muted}`}
+                              />
+                              <input
+                                type="password"
+                                value={password}
+                                onChange={(e) => setPassword(e.target.value)}
+                                className={`
+                            w-full pl-10 pr-3 py-2 rounded-md
+                            ${THEMES[theme].background.primary}
+                            ${THEMES[theme].text.primary}
+                            ${THEMES[theme].border}
+                            focus:outline-none focus:ring-2 focus:ring-yellow-500
+                          `}
+                                placeholder="Enter your password"
+                                required
+                              />
+                            </div>
+                          </div>
+                          {loginError && (
+                            <p className="text-red-500 text-sm">{loginError}</p>
+                          )}
+                          <motion.button
+                            type="submit"
+                            className={`
+                        w-full bg-yellow-500 text-white
+                        py-2 rounded-md flex items-center justify-center space-x-2
+                        hover:bg-yellow-600 transition-colors
+                      `}
+                            whileHover={{ scale: 1.05 }}
+                            whileTap={{ scale: 0.95 }}
+                          >
+                            <span>Sign In</span>
+                            <ArrowRight className="w-4 h-4" />
+                          </motion.button>
+                          <p
+                            className={`text-center ${THEMES[theme].text.muted} text-sm`}
+                          >
+                            Don’t have an account?{" "}
+                            <Link
+                              href="/signup"
+                              className="text-yellow-500 hover:text-yellow-600"
+                              onClick={() => setIsProfileOpen(false)}
+                            >
+                              Sign Up
+                            </Link>
+                          </p>
+                        </form>
+                      )}
+                    </div>
+                  </motion.div>
+                )}
+              </AnimatePresence>
+            </div>
 
             {/* Mobile Menu Toggle */}
             <button

@@ -14,7 +14,7 @@ async function sendOrderConfirmationEmail(userEmail: string, order: any) {
   try {
     const itemsList = order.items
       .map(
-        (item: any) => `${item.name} (Qty: ${item.quantity}) - $${item.price}`
+        (item: any) => `${item.name} (Qty: ${item.quantity}) - ₹${item.price}`
       )
       .join("\n");
 
@@ -29,18 +29,24 @@ async function sendOrderConfirmationEmail(userEmail: string, order: any) {
         <ul>${order.items
           .map(
             (item: any) =>
-              `<li>${item.name} (Qty: ${item.quantity}) - $${item.price}</li>`
+              `<li>${item.name} (Qty: ${item.quantity}) - ₹${item.price}</li>`
           )
           .join("")}</ul>
-        <p><strong>Subtotal:</strong> $${order.subtotal}</p>
-        <p><strong>Discount:</strong> $${order.discount}</p>
-        <p><strong>Total:</strong> $${order.total}</p>
+        <p><strong>Subtotal:</strong> ₹${order.subtotal}</p>
+        <p><strong>Discount:</strong> ₹${order.discount}</p>
+        <p><strong>Total:</strong> ₹${order.total}</p>
         <h3>Shipping Address:</h3>
         <p>${order.address.street}<br>${order.address.city}, ${
         order.address.state
       } ${order.address.zipCode}</p>
         <p><strong>Payment Method:</strong> ${order.payment_method}</p>
         <p><strong>Status:</strong> ${order.status}</p>
+        <p><strong>Scoop Points Used:</strong> ${
+          order.scoop_points_used || 0
+        }</p>
+        <p><strong>Scoop Points Earned:</strong> ${
+          order.scoop_points_earned || 0
+        }</p>
       `,
     });
     console.log("COD Order confirmation email sent to:", userEmail);
@@ -51,7 +57,15 @@ async function sendOrderConfirmationEmail(userEmail: string, order: any) {
 
 export async function POST(req: NextRequest) {
   try {
-    const { cartItems, amount, userId, address, couponCode } = await req.json();
+    const {
+      cartItems,
+      amount,
+      userId,
+      address,
+      couponCode,
+      scoopPointsUsed,
+      scoopPointsEarned,
+    } = await req.json();
 
     if (!cartItems || !amount || !userId || !address) {
       return NextResponse.json(
@@ -79,12 +93,13 @@ export async function POST(req: NextRequest) {
       created_at: new Date().toISOString(),
       coupon_code: couponCode || null,
       payment_method: "cod",
+      scoop_points_used: scoopPointsUsed || 0,
+      scoop_points_earned: scoopPointsEarned || 0,
     };
 
-    // Update user record
     const { data: userData, error: userError } = await supabase
       .from("users_onescoop")
-      .select("orders, email")
+      .select("orders, email, scoop_points")
       .eq("id", userId)
       .single();
 
@@ -98,12 +113,17 @@ export async function POST(req: NextRequest) {
 
     const currentOrders = Array.isArray(userData.orders) ? userData.orders : [];
     const updatedOrders = [...currentOrders, newOrder];
+    const newScoopPoints =
+      (userData.scoop_points || 0) -
+      (scoopPointsUsed || 0) +
+      (scoopPointsEarned || 0);
 
     const { error: updateError } = await supabase
       .from("users_onescoop")
       .update({
         orders: updatedOrders,
         cart: [],
+        scoop_points: newScoopPoints,
       })
       .eq("id", userId);
 
@@ -115,7 +135,6 @@ export async function POST(req: NextRequest) {
       );
     }
 
-    // Send confirmation email
     await sendOrderConfirmationEmail(userData.email, newOrder);
 
     return NextResponse.json({

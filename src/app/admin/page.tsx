@@ -13,8 +13,9 @@ import BlogTable from "@/components/admin/BlogTable";
 import BlogForm from "@/components/admin/BlogForm";
 import ConsultationTable from "@/components/admin/ConsultationTable";
 import OrderTable from "@/components/admin/OrderTable";
-import { useRouter } from "next/navigation"; // Import useRouter for redirection
+import { useRouter } from "next/navigation";
 import { Order } from "@/types/orders";
+import UserTable from "@/components/admin/UserTable";
 
 interface Coupon {
   id: string;
@@ -35,14 +36,21 @@ interface Consultation {
   contacted: boolean;
 }
 
+interface User {
+  id: number;
+  email: string;
+  orders: Order[];
+  scoopPoints?: number; // Added Scoop Points
+}
+
 interface ProductFormState {
   name: string;
   brand: string;
   category: string;
   subcategory: string;
   image: File | null;
-  imageUrl: string | null; // For preview
-  imagePath: string; // For URL input
+  imageUrl: string | null;
+  imagePath: string;
   price: string;
   originalPrice: string;
   discountPercentage: string;
@@ -74,7 +82,7 @@ export default function AdminPanel() {
   const [loading, setLoading] = useState(true);
   const [error, setError] = useState<string>("");
   const [activeTab, setActiveTab] = useState<
-    "products" | "coupons" | "blogs" | "orders" | "consultations"
+    "products" | "coupons" | "blogs" | "orders" | "consultations" | "users"
   >("products");
   const [consultations, setConsultations] = useState<Consultation[]>([]);
   const [showProductForm, setShowProductForm] = useState(false);
@@ -82,9 +90,10 @@ export default function AdminPanel() {
   const [showBlogForm, setShowBlogForm] = useState(false);
   const [editingProduct, setEditingProduct] = useState<Product | null>(null);
   const [editingBlog, setEditingBlog] = useState<Blog | null>(null);
-  const [isAuthenticated, setIsAuthenticated] = useState(false); // Track authentication status
-  const [authLoading, setAuthLoading] = useState(true); // Track auth check loading
+  const [isAuthenticated, setIsAuthenticated] = useState(false);
+  const [authLoading, setAuthLoading] = useState(true);
   const [orders, setOrders] = useState<Order[]>([]);
+  const [users, setUsers] = useState<User[]>([]); // Added users state
   const router = useRouter();
 
   const [productForm, setProductForm] = useState<ProductFormState>({
@@ -117,7 +126,6 @@ export default function AdminPanel() {
     imageUrl: null,
   });
 
-  // Check if user is authenticated
   useEffect(() => {
     const checkUser = async () => {
       setAuthLoading(true);
@@ -161,9 +169,17 @@ export default function AdminPanel() {
 
       const { data: usersData, error: usersError } = await supabase
         .from("users_onescoop")
-        .select("id, email, orders");
+        .select("id, email, orders, scoop_points");
       if (usersError)
         throw new Error(`Users fetch error: ${usersError.message}`);
+      setUsers(
+        usersData.map((u: any) => ({
+          id: u.id,
+          email: u.email,
+          orders: u.orders || [],
+          scoopPoints: u.scoop_points || 0,
+        }))
+      );
       const allOrders = usersData.flatMap((user) =>
         (user.orders || []).map((order: Order) => ({
           ...order,
@@ -197,7 +213,6 @@ export default function AdminPanel() {
     newStatus: string
   ) => {
     try {
-      // Fetch the user's current orders
       const { data: userData, error: fetchError } = await supabase
         .from("users_onescoop")
         .select("orders")
@@ -206,12 +221,10 @@ export default function AdminPanel() {
 
       if (fetchError) throw new Error(`Fetch error: ${fetchError.message}`);
 
-      // Update the specific order's status
       const updatedOrders = userData.orders.map((order: Order) =>
         order.order_id === orderId ? { ...order, status: newStatus } : order
       );
 
-      // Update the user's orders in the database
       const { error: updateError } = await supabase
         .from("users_onescoop")
         .update({ orders: updatedOrders })
@@ -219,10 +232,24 @@ export default function AdminPanel() {
 
       if (updateError) throw new Error(`Update error: ${updateError.message}`);
 
-      fetchData(); // Refresh the data
+      fetchData();
     } catch (err: any) {
       setError(err.message || "Failed to update order status");
       console.error("Error updating order status:", err);
+    }
+  };
+
+  const updateScoopPoints = async (userId: number, newPoints: number) => {
+    try {
+      const { error } = await supabase
+        .from("users_onescoop")
+        .update({ scoop_points: newPoints })
+        .eq("id", userId);
+      if (error) throw new Error(`Update error: ${error.message}`);
+      fetchData();
+    } catch (err: any) {
+      setError(err.message || "Failed to update Scoop Points");
+      console.error("Error updating scoop points:", err);
     }
   };
 
@@ -238,7 +265,6 @@ export default function AdminPanel() {
     try {
       let finalImageUrl = "";
 
-      // Handle image upload
       if (productForm.image) {
         const fileExt = productForm.image.name.split(".").pop();
         const fileName = `${Date.now()}.${fileExt}`;
@@ -251,23 +277,17 @@ export default function AdminPanel() {
           throw new Error("Failed to upload image: " + uploadError.message);
         }
 
-        // Get public URL
         const { data: publicUrlData } = supabase.storage
           .from("product-images")
           .getPublicUrl(fileName);
 
         finalImageUrl = publicUrlData.publicUrl;
-      }
-      // Handle direct URL
-      else if (productForm.imagePath) {
+      } else if (productForm.imagePath) {
         finalImageUrl = productForm.imagePath;
-      }
-      // Keep existing image if editing and no new image/URL provided
-      else if (editingProduct?.image) {
+      } else if (editingProduct?.image) {
         finalImageUrl = editingProduct.image;
       }
 
-      // Validate required image
       if (!finalImageUrl && !editingProduct?.image) {
         throw new Error("Please provide either an image upload or URL");
       }
@@ -289,7 +309,6 @@ export default function AdminPanel() {
         description: productForm.description.trim() || null,
       };
 
-      // Validation
       if (isNaN(productData.price)) {
         throw new Error("Price must be a valid number");
       }
@@ -303,13 +322,11 @@ export default function AdminPanel() {
 
       let result;
       if (editingProduct) {
-        // Update existing product
         result = await supabase
           .from("products")
           .update(productData)
           .eq("id", editingProduct.id);
       } else {
-        // Insert new product (don't include id)
         result = await supabase.from("products").insert([productData]);
       }
 
@@ -317,7 +334,6 @@ export default function AdminPanel() {
         throw new Error(`Database error: ${result.error.message}`);
       }
 
-      // Reset form
       setProductForm({
         name: "",
         brand: "",
@@ -461,7 +477,7 @@ export default function AdminPanel() {
       subcategory: product.subcategory || "",
       image: null,
       imageUrl: product.image || null,
-      imagePath: product.image || "", // Set existing image URL
+      imagePath: product.image || "",
       price: product.price ? product.price.toString() : "0",
       originalPrice: product.originalPrice
         ? product.originalPrice.toString()
@@ -503,7 +519,6 @@ export default function AdminPanel() {
     }
   };
 
-  // Handle logout
   async function handleLogout() {
     try {
       const { error } = await supabase.auth.signOut();
@@ -554,7 +569,18 @@ export default function AdminPanel() {
         </button>
       </div>
 
-      <TabNavigation activeTab={activeTab} setActiveTab={setActiveTab} />
+      <TabNavigation
+        activeTab={activeTab}
+        setActiveTab={setActiveTab}
+        tabs={[
+          "products",
+          "coupons",
+          "blogs",
+          "orders",
+          "consultations",
+          "users",
+        ]}
+      />
 
       {loading && <p className="text-gray-600">Loading...</p>}
       {error && <p className="text-red-500 mb-4">{error}</p>}
@@ -687,6 +713,17 @@ export default function AdminPanel() {
               customer at their provided number.
             </p>
           </div>
+        </div>
+      )}
+
+      {activeTab === "users" && !loading && !error && (
+        <div className="space-y-6">
+          <h2 className="text-xl font-semibold">Users</h2>
+          <UserTable
+            users={users}
+            setUsers={setUsers}
+            onUpdatePoints={updateScoopPoints}
+          />
         </div>
       )}
     </motion.div>

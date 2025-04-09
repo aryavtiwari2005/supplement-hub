@@ -92,7 +92,10 @@ const ProductCard: React.FC<ProductCardProps> = ({
     }
   };
 
-  const handleProductClick = () => {};
+  const handleProductClick = () => {
+    // Navigate to product detail page
+    router.push(`/products/${product.id}`);
+  };
 
   return (
     <motion.div
@@ -187,14 +190,14 @@ const ProductCard: React.FC<ProductCardProps> = ({
                   theme === "light" ? "text-black" : "text-white"
                 }`}
               >
-                ${discountedPrice.toFixed(2)}
+                ₹{discountedPrice.toFixed(2)}
               </span>
               <span
                 className={`ml-2 text-sm line-through ${
                   theme === "light" ? "text-gray-500" : "text-gray-400"
                 }`}
               >
-                ${product.price.toFixed(2)}
+                ₹{product.price.toFixed(2)}
               </span>
             </div>
           ) : (
@@ -203,7 +206,7 @@ const ProductCard: React.FC<ProductCardProps> = ({
                 theme === "light" ? "text-black" : "text-white"
               }`}
             >
-              ${product.price.toFixed(2)}
+              ₹{product.price.toFixed(2)}
             </span>
           )}
         </div>

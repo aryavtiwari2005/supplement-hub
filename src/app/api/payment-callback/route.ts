@@ -22,7 +22,7 @@ async function sendOrderConfirmationEmail(userEmail: string, order: any) {
   try {
     const itemsList = order.items
       .map(
-        (item: any) => `${item.name} (Qty: ${item.quantity}) - $${item.price}`
+        (item: any) => `${item.name} (Qty: ${item.quantity}) - ₹${item.price}`
       )
       .join("\n");
 
@@ -37,12 +37,12 @@ async function sendOrderConfirmationEmail(userEmail: string, order: any) {
         <ul>${order.items
           .map(
             (item: any) =>
-              `<li>${item.name} (Qty: ${item.quantity}) - $${item.price}</li>`
+              `<li>${item.name} (Qty: ${item.quantity}) - ₹${item.price}</li>`
           )
           .join("")}</ul>
-        <p><strong>Subtotal:</strong> $${order.subtotal}</p>
-        <p><strong>Discount:</strong> $${order.discount}</p>
-        <p><strong>Total:</strong> $${order.total}</p>
+        <p><strong>Subtotal:</strong> ₹${order.subtotal}</p>
+        <p><strong>Discount:</strong> ₹${order.discount}</p>
+        <p><strong>Total:</strong> ₹${order.total}</p>
         <h3>Shipping Address:</h3>
         <p>${order.address.street}<br>${order.address.city}, ${
         order.address.state
