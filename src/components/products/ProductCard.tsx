@@ -1,4 +1,3 @@
-// components/products/ProductCard.tsx
 "use client";
 import React from "react";
 import { useDispatch } from "react-redux";
@@ -39,7 +38,6 @@ const ProductCard: React.FC<ProductCardProps> = ({
   const [isHovered, setIsHovered] = React.useState(false);
   const [showAddedAnimation, setShowAddedAnimation] = React.useState(false);
 
-  // Calculate discounted price if applicable
   const discountedPrice = product.discount
     ? product.price - product.price * (product.discount / 100)
     : null;
@@ -62,10 +60,10 @@ const ProductCard: React.FC<ProductCardProps> = ({
   }, []);
 
   const handleAddToCart = async (e: React.MouseEvent) => {
-    e.stopPropagation(); // Prevent card click when clicking add to cart
-    if (isLoading) return; // Wait until user fetch completes
+    e.stopPropagation();
+    if (isLoading) return;
     if (!userId) {
-      router.push("/login"); // Redirect to login if not authenticated
+      router.push("/login");
       return;
     }
     const cartItem = {
@@ -79,32 +77,22 @@ const ProductCard: React.FC<ProductCardProps> = ({
     try {
       dispatch(addToCart(cartItem));
       await cartService.addToCart(userId, cartItem);
-
-      // Show success animation
       setShowAddedAnimation(true);
-
-      // Hide animation after 1.5 seconds
-      setTimeout(() => {
-        setShowAddedAnimation(false);
-      }, 1500);
+      setTimeout(() => setShowAddedAnimation(false), 1500);
     } catch (error) {
       console.error("Error adding to cart:", error);
     }
   };
 
   const handleProductClick = () => {
-    // Navigate to product detail page
     router.push(`/products/${product.id}`);
   };
 
   return (
     <motion.div
-      whileHover={{
-        y: -4,
-        transition: { duration: 0.2 },
-      }}
+      whileHover={{ y: -4, transition: { duration: 0.2 } }}
       onClick={handleProductClick}
-      className={`cursor-pointer p-0 rounded-lg overflow-hidden shadow-md transition-all duration-300 ${
+      className={`cursor-pointer p-0 rounded-lg overflow-hidden shadow-md transition-all duration-300 h-full flex flex-col ${
         isHovered
           ? `shadow-xl ${theme === "light" ? "bg-white" : "bg-gray-800"}`
           : `${theme === "light" ? "bg-white" : "bg-gray-800"}`
@@ -112,17 +100,13 @@ const ProductCard: React.FC<ProductCardProps> = ({
       onMouseEnter={() => setIsHovered(true)}
       onMouseLeave={() => setIsHovered(false)}
     >
-      {/* Product Image - Portrait Style */}
-      <div className="relative h-64 w-full overflow-hidden">
-        <div
-          className="absolute inset-0 bg-cover bg-center transition-transform duration-500"
-          style={{
-            backgroundImage: `url(${product.image})`,
-            transform: isHovered ? "scale(1.05)" : "scale(1)",
-          }}
+      <div className="relative h-64 w-full flex-shrink-0 overflow-hidden">
+        <img
+          src={product.image}
+          alt={product.name}
+          className="w-full h-full object-contain transition-transform duration-500"
+          style={{ transform: isHovered ? "scale(1.05)" : "scale(1)" }}
         />
-
-        {/* Discount Badge */}
         {product.discount && (
           <div className="absolute top-2 left-2 bg-red-500 text-white text-xs font-bold px-2 py-1 rounded">
             {product.discount}% OFF
@@ -130,9 +114,7 @@ const ProductCard: React.FC<ProductCardProps> = ({
         )}
       </div>
 
-      {/* Product Content */}
-      <div className="p-4">
-        {/* Category Badge */}
+      <div className="p-4 flex flex-col flex-grow">
         {showCategory && product.category && (
           <span
             className={`text-xs font-medium px-2 py-0.5 rounded mb-2 inline-block ${
@@ -145,17 +127,14 @@ const ProductCard: React.FC<ProductCardProps> = ({
           </span>
         )}
 
-        <div className="flex justify-between items-start">
-          {/* Product Name */}
+        <div className="flex justify-between items-start mb-2">
           <h3
-            className={`font-semibold text-lg mb-1 ${
+            className={`font-semibold text-lg ${
               theme === "light" ? "text-black" : "text-white"
             }`}
           >
             {product.name}
           </h3>
-
-          {/* Rating Stars */}
           {product.rating && (
             <div className="flex items-center">
               <Star size={16} className="text-yellow-400 fill-yellow-400" />
@@ -170,10 +149,9 @@ const ProductCard: React.FC<ProductCardProps> = ({
           )}
         </div>
 
-        {/* Description - if available */}
         {product.description && (
           <p
-            className={`text-sm mb-3 line-clamp-2 ${
+            className={`text-sm mb-3 line-clamp-2 flex-grow ${
               theme === "light" ? "text-gray-600" : "text-gray-300"
             }`}
           >
@@ -181,7 +159,6 @@ const ProductCard: React.FC<ProductCardProps> = ({
           </p>
         )}
 
-        {/* Price Display */}
         <div className="mt-2 mb-3">
           {discountedPrice ? (
             <div className="flex items-center">
@@ -211,12 +188,11 @@ const ProductCard: React.FC<ProductCardProps> = ({
           )}
         </div>
 
-        {/* Variant Selector */}
         {product.variants && product.variants.length > 0 && (
           <select
             value={selectedVariant}
             onChange={(e) => {
-              e.stopPropagation(); // Prevent card click when selecting variant
+              e.stopPropagation();
               setSelectedVariant(e.target.value);
             }}
             className={`w-full p-2 rounded text-sm mb-3 ${
@@ -233,8 +209,7 @@ const ProductCard: React.FC<ProductCardProps> = ({
           </select>
         )}
 
-        {/* Add to Cart Button with Animation */}
-        <div className="relative">
+        <div className="relative mt-auto">
           <AnimatePresence>
             {showAddedAnimation ? (
               <motion.div

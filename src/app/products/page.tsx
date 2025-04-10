@@ -1,4 +1,3 @@
-// src/app/products/page.tsx
 "use client";
 
 import { useState, useEffect } from "react";
@@ -7,7 +6,7 @@ import { PRODUCTS } from "@/utils/constants";
 import { useSelector } from "react-redux";
 import { selectTheme } from "@/redux/themeSlice";
 import { useRouter } from "next/navigation";
-import ProductCard from "@/components/products/ProductCard"; // Assuming this exists
+import ProductCard from "@/components/products/ProductCard";
 
 export default function ProductsPage() {
   const theme = useSelector(selectTheme);
@@ -35,7 +34,6 @@ export default function ProductsPage() {
     loadProducts();
   }, []);
 
-  // Get current products
   const indexOfLastProduct = currentPage * productsPerPage;
   const indexOfFirstProduct = indexOfLastProduct - productsPerPage;
   const currentProducts = products.slice(
@@ -44,7 +42,6 @@ export default function ProductsPage() {
   );
   const totalPages = Math.ceil(products.length / productsPerPage);
 
-  // Change page
   const paginate = (pageNumber: number) => setCurrentPage(pageNumber);
 
   const pageVariants = {
@@ -102,7 +99,6 @@ export default function ProductsPage() {
       }`}
     >
       <div className="container mx-auto px-4 py-16">
-        {/* Page Title */}
         <motion.h1
           variants={titleVariants}
           className={`text-5xl font-extrabold text-center mb-6 ${
@@ -128,7 +124,6 @@ export default function ProductsPage() {
           Premium quality products to fuel your fitness journey
         </motion.p>
 
-        {/* Animated Divider */}
         <motion.div
           variants={dividerVariants}
           className={`h-1 mx-auto mb-12 ${
@@ -136,13 +131,12 @@ export default function ProductsPage() {
           } rounded-full max-w-md`}
         />
 
-        {/* Products Grid */}
         <motion.div
           initial={{ opacity: 0, y: 50 }}
           animate={{ opacity: 1, y: 0, transition: { duration: 0.6 } }}
           className="mb-16"
         >
-          <div className="grid grid-cols-1 sm:grid-cols-2 md:grid-cols-3 lg:grid-cols-4 gap-6">
+          <div className="grid grid-cols-1 sm:grid-cols-2 md:grid-cols-3 lg:grid-cols-4 gap-6 auto-rows-fr">
             {currentProducts.map((product, index) => (
               <motion.div
                 key={product.id}
@@ -152,6 +146,7 @@ export default function ProductsPage() {
                   y: 0,
                   transition: { duration: 0.4, delay: index * 0.05 },
                 }}
+                className="h-full"
               >
                 <ProductCard
                   product={product}
@@ -162,7 +157,6 @@ export default function ProductsPage() {
             ))}
           </div>
 
-          {/* No products found message */}
           {products.length === 0 && (
             <div className="text-center my-12">
               <p
@@ -176,7 +170,6 @@ export default function ProductsPage() {
           )}
         </motion.div>
 
-        {/* Pagination */}
         {products.length > 0 && (
           <motion.div
             initial={{ opacity: 0 }}
@@ -205,10 +198,7 @@ export default function ProductsPage() {
               </button>
 
               {[...Array(totalPages)].map((_, index) => {
-                // Show limited page numbers with ellipsis for better UX
                 const pageNumber = index + 1;
-
-                // Always show first, last, current and pages around current
                 if (
                   pageNumber === 1 ||
                   pageNumber === totalPages ||
@@ -237,8 +227,6 @@ export default function ProductsPage() {
                     </button>
                   );
                 }
-
-                // Show ellipsis
                 if (
                   (pageNumber === 2 && currentPage > 3) ||
                   (pageNumber === totalPages - 1 &&
@@ -255,7 +243,6 @@ export default function ProductsPage() {
                     </span>
                   );
                 }
-
                 return null;
               })}
 

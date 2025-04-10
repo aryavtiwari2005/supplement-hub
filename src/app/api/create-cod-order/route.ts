@@ -1,5 +1,6 @@
 import { NextRequest, NextResponse } from "next/server";
 import { supabase } from "@/utils/supabase";
+import { cartService } from "@/services/cartService";
 import nodemailer from "nodemailer";
 
 const transporter = nodemailer.createTransport({
@@ -57,29 +58,59 @@ async function sendOrderConfirmationEmail(userEmail: string, order: any) {
 
 export async function POST(req: NextRequest) {
   try {
-    const {
-      cartItems,
-      amount,
-      userId,
-      address,
-      couponCode,
-      scoopPointsUsed,
-      scoopPointsEarned,
-    } = await req.json();
+    const { cartItems, userId, address, couponCode, scoopPointsToRedeem } =
+      await req.json();
 
-    if (!cartItems || !amount || !userId || !address) {
+    if (!cartItems || !userId || !address) {
       return NextResponse.json(
         { error: "Missing required parameters" },
         { status: 400 }
       );
     }
 
+    // Calculate subtotal
     const subtotal = cartItems.reduce(
       (sum: number, item: any) => sum + item.price * item.quantity,
       0
     );
-    const discount = amount < subtotal ? subtotal - amount : 0;
-    const total = amount;
+
+    // Apply coupon discount
+    let couponDiscount = 0;
+    if (couponCode) {
+      const coupon = await cartService.getCoupon(couponCode);
+      if (coupon) {
+        couponDiscount = subtotal * (coupon.discount_percentage / 100);
+      }
+    }
+
+    // Apply scoop points discount (1 point = ₹1)
+    const scoopPointsDiscount = scoopPointsToRedeem || 0;
+
+    // Validate scoop points
+    const { data: userData, error: userError } = await supabase
+      .from("users_onescoop")
+      .select("scoop_points")
+      .eq("id", userId)
+      .single();
+    if (userError) {
+      console.error("Error fetching user scoop points:", userError);
+      return NextResponse.json(
+        { error: "Failed to fetch user data" },
+        { status: 500 }
+      );
+    }
+    const availableScoopPoints = userData?.scoop_points || 0;
+    if (scoopPointsToRedeem > availableScoopPoints) {
+      return NextResponse.json(
+        { error: "Insufficient scoop points" },
+        { status: 400 }
+      );
+    }
+
+    // Calculate total
+    const totalDiscount = couponDiscount + scoopPointsDiscount;
+    const total = Math.max(0, subtotal - totalDiscount);
+    const scoopPointsEarned = Math.floor(total / 100) * 2; // 2 points per ₹100 spent
 
     const orderId = `order-${Date.now()}`;
     const newOrder = {
@@ -87,36 +118,39 @@ export async function POST(req: NextRequest) {
       total,
       status: "pending",
       address,
-      discount,
+      discount: totalDiscount,
       order_id: orderId,
       subtotal,
       created_at: new Date().toISOString(),
       coupon_code: couponCode || null,
       payment_method: "cod",
-      scoop_points_used: scoopPointsUsed || 0,
-      scoop_points_earned: scoopPointsEarned || 0,
+      scoop_points_used: scoopPointsToRedeem || 0,
+      scoop_points_earned: scoopPointsEarned,
     };
 
-    const { data: userData, error: userError } = await supabase
+    // Update user data
+    const { data: userFullData, error: fetchError } = await supabase
       .from("users_onescoop")
       .select("orders, email, scoop_points")
       .eq("id", userId)
       .single();
 
-    if (userError) {
-      console.error("Error fetching user:", userError);
+    if (fetchError) {
+      console.error("Error fetching user:", fetchError);
       return NextResponse.json(
         { error: "Failed to fetch user data" },
         { status: 500 }
       );
     }
 
-    const currentOrders = Array.isArray(userData.orders) ? userData.orders : [];
+    const currentOrders = Array.isArray(userFullData.orders)
+      ? userFullData.orders
+      : [];
     const updatedOrders = [...currentOrders, newOrder];
     const newScoopPoints =
-      (userData.scoop_points || 0) -
-      (scoopPointsUsed || 0) +
-      (scoopPointsEarned || 0);
+      (userFullData.scoop_points || 0) -
+      (scoopPointsToRedeem || 0) +
+      scoopPointsEarned;
 
     const { error: updateError } = await supabase
       .from("users_onescoop")
@@ -135,7 +169,7 @@ export async function POST(req: NextRequest) {
       );
     }
 
-    await sendOrderConfirmationEmail(userData.email, newOrder);
+    await sendOrderConfirmationEmail(userFullData.email, newOrder);
 
     return NextResponse.json({
       success: true,

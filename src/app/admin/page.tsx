@@ -13,9 +13,11 @@ import BlogTable from "@/components/admin/BlogTable";
 import BlogForm from "@/components/admin/BlogForm";
 import ConsultationTable from "@/components/admin/ConsultationTable";
 import OrderTable from "@/components/admin/OrderTable";
+import UserTable from "@/components/admin/UserTable";
+import BestSellerTable from "@/components/admin/BestSellerTable";
+import BestSellerForm from "@/components/admin/BestSellerForm";
 import { useRouter } from "next/navigation";
 import { Order } from "@/types/orders";
-import UserTable from "@/components/admin/UserTable";
 
 interface Coupon {
   id: string;
@@ -40,7 +42,15 @@ interface User {
   id: number;
   email: string;
   orders: Order[];
-  scoopPoints?: number; // Added Scoop Points
+  scoopPoints?: number;
+}
+
+interface BestSeller {
+  id: number;
+  product_id: number;
+  sales_count: number;
+  added_at: string;
+  products: Product;
 }
 
 interface ProductFormState {
@@ -56,6 +66,13 @@ interface ProductFormState {
   discountPercentage: string;
   rating: string;
   description: string;
+}
+
+interface CouponFormState {
+  code: string;
+  discountPercentage: string;
+  isActive: boolean;
+  expiresAt: string;
 }
 
 interface Blog {
@@ -79,21 +96,29 @@ export default function AdminPanel() {
   const [products, setProducts] = useState<Product[]>([]);
   const [coupons, setCoupons] = useState<Coupon[]>([]);
   const [blogs, setBlogs] = useState<Blog[]>([]);
+  const [bestSellers, setBestSellers] = useState<BestSeller[]>([]);
   const [loading, setLoading] = useState(true);
   const [error, setError] = useState<string>("");
   const [activeTab, setActiveTab] = useState<
-    "products" | "coupons" | "blogs" | "orders" | "consultations" | "users"
+    | "products"
+    | "coupons"
+    | "blogs"
+    | "orders"
+    | "consultations"
+    | "users"
+    | "bestSellers"
   >("products");
   const [consultations, setConsultations] = useState<Consultation[]>([]);
   const [showProductForm, setShowProductForm] = useState(false);
   const [showCouponForm, setShowCouponForm] = useState(false);
   const [showBlogForm, setShowBlogForm] = useState(false);
+  const [showBestSellerForm, setShowBestSellerForm] = useState(false);
   const [editingProduct, setEditingProduct] = useState<Product | null>(null);
   const [editingBlog, setEditingBlog] = useState<Blog | null>(null);
   const [isAuthenticated, setIsAuthenticated] = useState(false);
   const [authLoading, setAuthLoading] = useState(true);
   const [orders, setOrders] = useState<Order[]>([]);
-  const [users, setUsers] = useState<User[]>([]); // Added users state
+  const [users, setUsers] = useState<User[]>([]);
   const router = useRouter();
 
   const [productForm, setProductForm] = useState<ProductFormState>({
@@ -111,7 +136,7 @@ export default function AdminPanel() {
     description: "",
   });
 
-  const [couponForm, setCouponForm] = useState({
+  const [couponForm, setCouponForm] = useState<CouponFormState>({
     code: "",
     discountPercentage: "",
     isActive: true,
@@ -167,6 +192,30 @@ export default function AdminPanel() {
       if (blogError) throw new Error(`Blog fetch error: ${blogError.message}`);
       setBlogs(blogData as Blog[]);
 
+      const { data: bestSellerData, error: bestSellerError } =
+        await supabase.from("best_seller_products").select(`
+          id,
+          product_id,
+          sales_count,
+          added_at,
+          products!best_seller_products_product_id_fkey (
+            id,
+            name,
+            brand,
+            category,
+            subcategory,
+            image,
+            price,
+            original_price,
+            discount_percentage,
+            rating,
+            description
+          )
+        `);
+      if (bestSellerError)
+        throw new Error(`Best seller fetch error: ${bestSellerError.message}`);
+      setBestSellers(bestSellerData as unknown as BestSeller[]);
+
       const { data: usersData, error: usersError } = await supabase
         .from("users_onescoop")
         .select("id, email, orders, scoop_points");
@@ -218,7 +267,6 @@ export default function AdminPanel() {
         .select("orders")
         .eq("id", userId)
         .single();
-
       if (fetchError) throw new Error(`Fetch error: ${fetchError.message}`);
 
       const updatedOrders = userData.orders.map((order: Order) =>
@@ -229,7 +277,6 @@ export default function AdminPanel() {
         .from("users_onescoop")
         .update({ orders: updatedOrders })
         .eq("id", userId);
-
       if (updateError) throw new Error(`Update error: ${updateError.message}`);
 
       fetchData();
@@ -253,6 +300,35 @@ export default function AdminPanel() {
     }
   };
 
+  const addBestSeller = async (productId: number, salesCount: number) => {
+    try {
+      const { error } = await supabase
+        .from("best_seller_products")
+        .insert([{ product_id: productId, sales_count: salesCount }]);
+      if (error) throw new Error(`Insert error: ${error.message}`);
+      fetchData();
+    } catch (err: any) {
+      setError(err.message || "Failed to add best seller");
+      throw err; // Re-throw to handle in form
+    }
+  };
+
+  const removeBestSeller = async (id: number) => {
+    if (confirm("Are you sure you want to remove this best seller?")) {
+      try {
+        const { error } = await supabase
+          .from("best_seller_products")
+          .delete()
+          .eq("id", id);
+        if (error) throw new Error(`Delete error: ${error.message}`);
+        fetchData();
+      } catch (err: any) {
+        setError(err.message || "Failed to remove best seller");
+        console.error("Error removing best seller:", err);
+      }
+    }
+  };
+
   useEffect(() => {
     if (isAuthenticated) {
       fetchData();
@@ -264,23 +340,17 @@ export default function AdminPanel() {
     setError("");
     try {
       let finalImageUrl = "";
-
       if (productForm.image) {
         const fileExt = productForm.image.name.split(".").pop();
         const fileName = `${Date.now()}.${fileExt}`;
-
         const { data, error: uploadError } = await supabase.storage
           .from("product-images")
           .upload(fileName, productForm.image);
-
-        if (uploadError) {
+        if (uploadError)
           throw new Error("Failed to upload image: " + uploadError.message);
-        }
-
         const { data: publicUrlData } = supabase.storage
           .from("product-images")
           .getPublicUrl(fileName);
-
         finalImageUrl = publicUrlData.publicUrl;
       } else if (productForm.imagePath) {
         finalImageUrl = productForm.imagePath;
@@ -309,9 +379,8 @@ export default function AdminPanel() {
         description: productForm.description.trim() || null,
       };
 
-      if (isNaN(productData.price)) {
+      if (isNaN(productData.price))
         throw new Error("Price must be a valid number");
-      }
       if (
         isNaN(productData.rating) ||
         productData.rating < 0 ||
@@ -330,9 +399,8 @@ export default function AdminPanel() {
         result = await supabase.from("products").insert([productData]);
       }
 
-      if (result.error) {
+      if (result.error)
         throw new Error(`Database error: ${result.error.message}`);
-      }
 
       setProductForm({
         name: "",
@@ -348,7 +416,6 @@ export default function AdminPanel() {
         rating: "",
         description: "",
       });
-
       setEditingProduct(null);
       setShowProductForm(false);
       fetchData();
@@ -401,17 +468,14 @@ export default function AdminPanel() {
     setError("");
     try {
       let uploadedImageUrl = blogForm.imageUrl;
-
       if (blogForm.image) {
         const fileExt = blogForm.image.name.split(".").pop();
         const fileName = `${Date.now()}.${fileExt}`;
         const { data, error: uploadError } = await supabase.storage
           .from("blog-images")
           .upload(fileName, blogForm.image);
-
         if (uploadError)
           throw new Error("Failed to upload image: " + uploadError.message);
-
         const { data: publicUrlData } = supabase.storage
           .from("blog-images")
           .getPublicUrl(fileName);
@@ -435,9 +499,8 @@ export default function AdminPanel() {
         result = await supabase.from("blogs_onescoop").insert([blogData]);
       }
 
-      if (result.error) {
+      if (result.error)
         throw new Error(`Insert/Update error: ${result.error.message}`);
-      }
 
       setBlogForm({
         title: "",
@@ -579,6 +642,7 @@ export default function AdminPanel() {
           "orders",
           "consultations",
           "users",
+          "bestSellers",
         ]}
       />
 
@@ -610,13 +674,11 @@ export default function AdminPanel() {
           >
             Add New Product
           </button>
-
           <ProductTable
             products={products}
             onEdit={editProduct}
             onDelete={deleteProduct}
           />
-
           {showProductForm && (
             <ProductForm
               productForm={productForm}
@@ -637,9 +699,7 @@ export default function AdminPanel() {
           >
             Add New Coupon
           </button>
-
           <CouponTable coupons={coupons} />
-
           {showCouponForm && (
             <CouponForm
               couponForm={couponForm}
@@ -669,9 +729,7 @@ export default function AdminPanel() {
           >
             Add New Blog
           </button>
-
           <BlogTable blogs={blogs} onEdit={editBlog} onDelete={deleteBlog} />
-
           {showBlogForm && (
             <BlogForm
               blogForm={blogForm}
@@ -697,12 +755,10 @@ export default function AdminPanel() {
               requests
             </div>
           </div>
-
           <ConsultationTable
             consultations={consultations}
             onUpdate={fetchData}
           />
-
           <div className="text-sm text-gray-500">
             <p>
               When you mark a consultation as contacted, it will be moved to the
@@ -725,6 +781,30 @@ export default function AdminPanel() {
             onUpdatePoints={updateScoopPoints}
           />
         </div>
+      )}
+
+      {activeTab === "bestSellers" && !loading && !error && (
+        <>
+          <button
+            onClick={() => setShowBestSellerForm(true)}
+            className="bg-green-600 text-white px-6 py-2 rounded-lg mb-6 hover:bg-green-700 transition-colors"
+          >
+            Add Best Seller
+          </button>
+          <BestSellerTable
+            bestSellers={bestSellers}
+            onRemove={removeBestSeller}
+          />
+          {showBestSellerForm && (
+            <BestSellerForm
+              products={products.filter(
+                (p) => !bestSellers.some((bs) => bs.product_id === p.id)
+              )} // Exclude already selected best sellers
+              onSubmit={addBestSeller}
+              onClose={() => setShowBestSellerForm(false)}
+            />
+          )}
+        </>
       )}
     </motion.div>
   );

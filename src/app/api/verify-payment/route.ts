@@ -48,6 +48,12 @@ async function sendOrderConfirmationEmail(userEmail: string, order: any) {
       } ${order.address.zipCode}</p>
         <p><strong>Payment Method:</strong> ${order.payment_method}</p>
         <p><strong>Status:</strong> ${order.status}</p>
+        <p><strong>Scoop Points Used:</strong> ${
+          order.scoop_points_used || 0
+        }</p>
+        <p><strong>Scoop Points Earned:</strong> ${
+          order.scoop_points_earned || 0
+        }</p>
       `,
     });
     console.log("Order confirmation email sent to:", userEmail);
@@ -85,10 +91,9 @@ export async function GET(req: NextRequest) {
       );
     }
 
-    // Check if order is already processed
     const { data: userData, error: userError } = await supabase
       .from("users_onescoop")
-      .select("orders")
+      .select("orders, scoop_points")
       .eq("id", userId)
       .single();
 
@@ -104,7 +109,6 @@ export async function GET(req: NextRequest) {
       });
     }
 
-    // Fetch pending order
     const { data: pendingOrder, error: pendingError } = await supabase
       .from("pending_orders")
       .select("*")
@@ -119,7 +123,6 @@ export async function GET(req: NextRequest) {
       );
     }
 
-    // Check PhonePe status
     const endpoint = `/pg/v1/status/${MERCHANT_ID}/${transactionId}`;
     const checksum = `${crypto
       .createHash("sha256")
@@ -144,20 +147,11 @@ export async function GET(req: NextRequest) {
       statusData.success &&
       (statusData.code === "PAYMENT_SUCCESS" || statusData.code === "SUCCESS")
     ) {
-      // Payment successful, save order
       const newOrder = {
         items: pendingOrder.cart_items,
         total: pendingOrder.amount,
-        subtotal: pendingOrder.cart_items.reduce(
-          (sum: number, item: any) => sum + item.price * item.quantity,
-          0
-        ),
-        discount: pendingOrder.coupon_code
-          ? pendingOrder.cart_items.reduce(
-              (sum: number, item: any) => sum + item.price * item.quantity,
-              0
-            ) - pendingOrder.amount
-          : 0,
+        subtotal: pendingOrder.subtotal,
+        discount: pendingOrder.discount,
         status: "pending",
         address: pendingOrder.address,
         order_id: orderId,
@@ -165,17 +159,27 @@ export async function GET(req: NextRequest) {
         coupon_code: pendingOrder.coupon_code || null,
         payment_method: "phonePe",
         transaction_id: transactionId,
+        scoop_points_used: pendingOrder.scoop_points_used || 0,
+        scoop_points_earned: pendingOrder.scoop_points_earned || 0,
       };
 
       const updatedOrders = [...currentOrders, newOrder];
+      const newScoopPoints =
+        (userData.scoop_points || 0) -
+        (pendingOrder.scoop_points_used || 0) +
+        (pendingOrder.scoop_points_earned || 0);
+
       const { error: updateError } = await supabase
         .from("users_onescoop")
-        .update({ orders: updatedOrders, cart: [] })
+        .update({
+          orders: updatedOrders,
+          cart: [],
+          scoop_points: newScoopPoints,
+        })
         .eq("id", userId);
 
       if (updateError) throw updateError;
 
-      // Send confirmation email
       const { data: emailData } = await supabase
         .from("users_onescoop")
         .select("email")
@@ -184,7 +188,6 @@ export async function GET(req: NextRequest) {
       if (emailData?.email)
         await sendOrderConfirmationEmail(emailData.email, newOrder);
 
-      // Clean up pending order
       await supabase
         .from("pending_orders")
         .delete()
@@ -197,7 +200,6 @@ export async function GET(req: NextRequest) {
         paymentStatus: "success",
       });
     } else {
-      // Payment failed or pending, keep in pending_orders
       return NextResponse.json({
         orderId,
         transactionId,

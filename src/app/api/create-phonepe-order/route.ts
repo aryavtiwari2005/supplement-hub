@@ -1,8 +1,7 @@
 import { NextRequest, NextResponse } from "next/server";
 import { supabase } from "@/utils/supabase";
-import jwt from "jsonwebtoken";
+import { cartService } from "@/services/cartService";
 import crypto from "crypto";
-import nodemailer from "nodemailer";
 
 const PHONEPE_HOST = process.env.PHONEPE_HOST;
 const MERCHANT_ID = process.env.PHONEPE_MERCHANT_ID;
@@ -10,256 +9,86 @@ const SALT_KEY = process.env.PHONEPE_SALT_KEY;
 const SALT_INDEX = process.env.PHONEPE_SALT_INDEX || "1";
 const REDIRECT_URL = process.env.NEXT_PUBLIC_APP_URL + "/payment-status";
 
-const transporter = nodemailer.createTransport({
-  service: "gmail",
-  auth: {
-    user: process.env.EMAIL_USER,
-    pass: process.env.EMAIL_PASS,
-  },
-});
-
-async function sendOrderConfirmationEmail(userEmail: string, order: any) {
-  try {
-    const itemsList = order.items
-      .map(
-        (item: any) => `${item.name} (Qty: ${item.quantity}) - ₹${item.price}`
-      )
-      .join("\n");
-
-    await transporter.sendMail({
-      from: `"Supplement Hub" <${process.env.EMAIL_USER}>`,
-      to: userEmail,
-      subject: `Order Confirmation - ${order.order_id}`,
-      html: `
-        <h2>Thank you for your order!</h2>
-        <p><strong>Order ID:</strong> ${order.order_id}</p>
-        <h3>Items:</h3>
-        <ul>${order.items
-          .map(
-            (item: any) =>
-              `<li>${item.name} (Qty: ${item.quantity}) - ₹${item.price}</li>`
-          )
-          .join("")}</ul>
-        <p><strong>Subtotal:</strong> ₹${order.subtotal}</p>
-        <p><strong>Discount:</strong> ₹${order.discount}</p>
-        <p><strong>Total:</strong> ₹${order.total}</p>
-        <h3>Shipping Address:</h3>
-        <p>${order.address.street}<br>${order.address.city}, ${
-        order.address.state
-      } ${order.address.zipCode}</p>
-        <p><strong>Payment Method:</strong> ${order.payment_method}</p>
-        <p><strong>Status:</strong> ${order.status}</p>
-        <p><strong>Scoop Points Used:</strong> ${
-          order.scoop_points_used || 0
-        }</p>
-        <p><strong>Scoop Points Earned:</strong> ${
-          order.scoop_points_earned || 0
-        }</p>
-      `,
-    });
-    console.log("Order confirmation email sent to:", userEmail);
-  } catch (error) {
-    console.error("Failed to send confirmation email:", error);
-  }
-}
-
-export async function GET(req: NextRequest) {
-  const url = new URL(req.url);
-  const orderId = url.searchParams.get("orderId");
-  const transactionId = url.searchParams.get("transactionId");
-
-  if (!orderId || !transactionId) {
-    return NextResponse.json(
-      { error: "Missing orderId or transactionId" },
-      { status: 400 }
-    );
-  }
-
-  const token = req.cookies.get("authToken")?.value;
-  if (!token)
-    return NextResponse.json({ error: "Unauthorized" }, { status: 401 });
-
-  try {
-    const decoded = jwt.verify(token, process.env.JWT_SECRET!) as {
-      userId: number;
-    };
-    const userId = decoded.userId;
-
-    if (!PHONEPE_HOST || !MERCHANT_ID || !SALT_KEY) {
-      return NextResponse.json(
-        { error: "PhonePe configuration missing" },
-        { status: 500 }
-      );
-    }
-
-    const { data: userData, error: userError } = await supabase
-      .from("users_onescoop")
-      .select("orders, scoop_points")
-      .eq("id", userId)
-      .single();
-
-    if (userError) throw userError;
-
-    const currentOrders = Array.isArray(userData.orders) ? userData.orders : [];
-    if (currentOrders.some((order: any) => order.order_id === orderId)) {
-      return NextResponse.json({
-        orderId,
-        transactionId,
-        status: "pending",
-        paymentStatus: "success",
-      });
-    }
-
-    const { data: pendingOrder, error: pendingError } = await supabase
-      .from("pending_orders")
-      .select("*")
-      .eq("temp_order_id", orderId)
-      .eq("user_id", userId)
-      .single();
-
-    if (pendingError || !pendingOrder) {
-      return NextResponse.json(
-        { error: "Pending order not found" },
-        { status: 404 }
-      );
-    }
-
-    const endpoint = `/pg/v1/status/${MERCHANT_ID}/${transactionId}`;
-    const checksum = `${crypto
-      .createHash("sha256")
-      .update(`/pg/v1/status/${MERCHANT_ID}/${transactionId}${SALT_KEY}`)
-      .digest("hex")}###${SALT_INDEX}`;
-
-    const headers: Record<string, string> = {
-      "Content-Type": "application/json",
-      "X-VERIFY": checksum,
-      Accept: "application/json",
-    };
-    if (MERCHANT_ID) headers["X-MERCHANT-ID"] = MERCHANT_ID;
-
-    const statusResponse = await fetch(`${PHONEPE_HOST}${endpoint}`, {
-      method: "GET",
-      headers,
-    });
-
-    const statusData = await statusResponse.json();
-
-    if (
-      statusData.success &&
-      (statusData.code === "PAYMENT_SUCCESS" || statusData.code === "SUCCESS")
-    ) {
-      const subtotal = pendingOrder.cart_items.reduce(
-        (sum: number, item: any) => sum + item.price * item.quantity,
-        0
-      );
-      const newOrder = {
-        items: pendingOrder.cart_items,
-        total: pendingOrder.amount,
-        subtotal,
-        discount: pendingOrder.coupon_code
-          ? subtotal -
-            pendingOrder.amount +
-            pendingOrder.scoop_points_used * 0.1
-          : pendingOrder.scoop_points_used * 0.1,
-        status: "pending",
-        address: pendingOrder.address,
-        order_id: orderId,
-        created_at: new Date().toISOString(),
-        coupon_code: pendingOrder.coupon_code || null,
-        payment_method: "phonePe",
-        transaction_id: transactionId,
-        scoop_points_used: pendingOrder.scoop_points_used || 0,
-        scoop_points_earned: pendingOrder.scoop_points_earned || 0,
-      };
-
-      const updatedOrders = [...currentOrders, newOrder];
-      const newScoopPoints =
-        (userData.scoop_points || 0) -
-        (pendingOrder.scoop_points_used || 0) +
-        (pendingOrder.scoop_points_earned || 0);
-
-      const { error: updateError } = await supabase
-        .from("users_onescoop")
-        .update({
-          orders: updatedOrders,
-          cart: [],
-          scoop_points: newScoopPoints,
-        })
-        .eq("id", userId);
-
-      if (updateError) throw updateError;
-
-      const { data: emailData } = await supabase
-        .from("users_onescoop")
-        .select("email")
-        .eq("id", userId)
-        .single();
-      if (emailData?.email)
-        await sendOrderConfirmationEmail(emailData.email, newOrder);
-
-      await supabase
-        .from("pending_orders")
-        .delete()
-        .eq("temp_order_id", orderId);
-
-      return NextResponse.json({
-        orderId,
-        transactionId,
-        status: "pending",
-        paymentStatus: "success",
-      });
-    } else {
-      return NextResponse.json({
-        orderId,
-        transactionId,
-        status: "pending",
-        paymentStatus: "pending",
-      });
-    }
-  } catch (error: any) {
-    console.error("Verify payment error:", error);
-    return NextResponse.json(
-      { error: "Failed to verify payment" },
-      { status: 500 }
-    );
-  }
-}
-
 export async function POST(req: NextRequest) {
   try {
     const {
       cartItems,
-      amount,
       userId,
       address,
       couponCode,
       orderId,
-      scoopPointsUsed,
-      scoopPointsEarned,
+      scoopPointsToRedeem,
     } = await req.json();
 
-    if (!cartItems || !amount || !userId || !address || !orderId) {
+    if (!cartItems || !userId || !address || !orderId) {
       return NextResponse.json(
         { error: "Missing required parameters" },
         { status: 400 }
       );
     }
 
+    // Calculate subtotal
+    const subtotal = cartItems.reduce(
+      (sum: number, item: any) => sum + item.price * item.quantity,
+      0
+    );
+
+    // Apply coupon discount
+    let couponDiscount = 0;
+    if (couponCode) {
+      const coupon = await cartService.getCoupon(couponCode);
+      if (coupon) {
+        couponDiscount = subtotal * (coupon.discount_percentage / 100);
+      }
+    }
+
+    // Apply scoop points discount (1 point = ₹1)
+    const scoopPointsDiscount = scoopPointsToRedeem || 0;
+
+    // Validate scoop points
+    const { data: userData, error: userError } = await supabase
+      .from("users_onescoop")
+      .select("scoop_points")
+      .eq("id", userId)
+      .single();
+    if (userError) {
+      console.error("Error fetching user scoop points:", userError);
+      return NextResponse.json(
+        { error: "Failed to fetch user data" },
+        { status: 500 }
+      );
+    }
+    const availableScoopPoints = userData?.scoop_points || 0;
+    if (scoopPointsToRedeem > availableScoopPoints) {
+      return NextResponse.json(
+        { error: "Insufficient scoop points" },
+        { status: 400 }
+      );
+    }
+
+    // Calculate total
+    const totalDiscount = couponDiscount + scoopPointsDiscount;
+    const total = Math.max(0, subtotal - totalDiscount);
+    const scoopPointsEarned = Math.floor(total / 100) * 2;
+
     const merchantTransactionId = `MT${Date.now()}`;
 
+    // Store pending order
     const { error: tempError } = await supabase.from("pending_orders").insert({
       temp_order_id: orderId,
       user_id: userId,
       cart_items: cartItems,
-      amount,
+      amount: total,
       address,
       coupon_code: couponCode || null,
       payment_method: "phonePe",
       status: "pending_payment",
       created_at: new Date().toISOString(),
       transaction_id: merchantTransactionId,
-      scoop_points_used: scoopPointsUsed || 0,
-      scoop_points_earned: scoopPointsEarned || 0,
+      scoop_points_used: scoopPointsToRedeem || 0,
+      scoop_points_earned: scoopPointsEarned,
+      discount: totalDiscount,
+      subtotal,
     });
 
     if (tempError) {
@@ -274,7 +103,7 @@ export async function POST(req: NextRequest) {
       merchantId: MERCHANT_ID,
       merchantTransactionId,
       merchantUserId: `MUID${userId}`,
-      amount: Math.round(amount * 100),
+      amount: Math.round(total * 100), // Convert to paise
       redirectUrl: `${REDIRECT_URL}?orderId=${orderId}&transactionId=${merchantTransactionId}`,
       redirectMode: "REDIRECT",
       callbackUrl: process.env.NEXT_PUBLIC_APP_URL + "/api/payment-callback",

@@ -19,10 +19,9 @@ export default function HeroSection() {
 
   // Background images array
   const backgroundImages = [
-    "/images/hero/bnr_3861463_o.webp",
-    "/images/hero/bnr_3882043_o.webp",
-    "/images/hero/bnr_3881927_o.webp",
-    "/images/hero/bnr_3882033_o.webp",
+    "/images/hero/1.png",
+    "/images/hero/2.png",
+    "/images/hero/3.png",
   ];
 
   // Auto-slide functionality

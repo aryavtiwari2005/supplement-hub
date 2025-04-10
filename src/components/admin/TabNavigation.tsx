@@ -1,3 +1,5 @@
+"use client";
+
 interface TabNavigationProps {
   activeTab:
     | "products"
@@ -5,12 +7,26 @@ interface TabNavigationProps {
     | "blogs"
     | "orders"
     | "consultations"
-    | "users";
+    | "users"
+    | "bestSellers";
   setActiveTab: (
-    tab: "products" | "coupons" | "blogs" | "orders" | "consultations" | "users"
+    tab:
+      | "products"
+      | "coupons"
+      | "blogs"
+      | "orders"
+      | "consultations"
+      | "users"
+      | "bestSellers"
   ) => void;
   tabs: Array<
-    "products" | "coupons" | "blogs" | "orders" | "consultations" | "users"
+    | "products"
+    | "coupons"
+    | "blogs"
+    | "orders"
+    | "consultations"
+    | "users"
+    | "bestSellers"
   >;
 }
 
@@ -27,6 +43,7 @@ export default function TabNavigation({
     orders: "Orders",
     consultations: "Consultations",
     users: "Users",
+    bestSellers: "Best Sellers",
   };
 
   return (
