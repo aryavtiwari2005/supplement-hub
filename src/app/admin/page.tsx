@@ -19,6 +19,19 @@ import BestSellerForm from "@/components/admin/BestSellerForm";
 import { useRouter } from "next/navigation";
 import { Order } from "@/types/orders";
 
+interface SummerHealthProduct {
+  id: number;
+  product_id: number;
+  added_at: string;
+  products: Product;
+}
+
+interface FeaturedBrand {
+  id: number;
+  brand_name: string;
+  added_at: string;
+}
+
 interface Coupon {
   id: string;
   code: string;
@@ -92,6 +105,17 @@ interface BlogFormState {
   imageUrl: string | null;
 }
 
+interface Banner {
+  id: number;
+  image_url: string;
+  created_at: string;
+}
+
+interface BannerFormState {
+  image: File | null;
+  imageUrl: string | null;
+}
+
 export default function AdminPanel() {
   const [products, setProducts] = useState<Product[]>([]);
   const [coupons, setCoupons] = useState<Coupon[]>([]);
@@ -107,9 +131,20 @@ export default function AdminPanel() {
     | "consultations"
     | "users"
     | "bestSellers"
+    | "hero"
   >("products");
+  const [banners, setBanners] = useState<Banner[]>([]);
+  const [bannerForm, setBannerForm] = useState<BannerFormState>({
+    image: null,
+    imageUrl: null,
+  });
+  const [showBannerForm, setShowBannerForm] = useState<boolean>(false);
   const [consultations, setConsultations] = useState<Consultation[]>([]);
   const [showProductForm, setShowProductForm] = useState(false);
+  const [summerHealthProducts, setSummerHealthProducts] = useState<
+    SummerHealthProduct[]
+  >([]);
+  const [featuredBrands, setFeaturedBrands] = useState<FeaturedBrand[]>([]);
   const [showCouponForm, setShowCouponForm] = useState(false);
   const [showBlogForm, setShowBlogForm] = useState(false);
   const [showBestSellerForm, setShowBestSellerForm] = useState(false);
@@ -248,11 +283,166 @@ export default function AdminPanel() {
           `Consultation fetch error: ${consultationError.message}`
         );
       setConsultations(consultationData || []);
+
+      // Fetch banners
+      const { data: bannerData } = await supabase
+        .from("banners")
+        .select("*")
+        .order("created_at", { ascending: true });
+      setBanners(bannerData || []);
+
+      // Fetch Summer Health products
+      const { data: summerData, error: summerError } = await supabase
+        .from("summer_health_products")
+        .select(
+          `
+        id,
+        product_id,
+        added_at,
+        products!summer_health_products_product_id_fkey (
+          id,
+          name,
+          brand,
+          category,
+          subcategory,
+          image,
+          price,
+          original_price,
+          discount_percentage,
+          rating,
+          description
+        )
+      `
+        )
+        .limit(4);
+      if (summerError)
+        throw new Error(`Summer fetch error: ${summerError.message}`);
+      setSummerHealthProducts(
+        (summerData as unknown as SummerHealthProduct[]) || []
+      );
+
+      // Fetch Featured Brands
+      const { data: brandData } = await supabase
+        .from("featured_brands")
+        .select("*")
+        .limit(6);
+      setFeaturedBrands(brandData || []);
     } catch (err: any) {
       setError(err.message || "Failed to fetch data");
       console.error(err);
     } finally {
       setLoading(false);
+    }
+  };
+
+  const addSummerHealthProduct = async (productId: number) => {
+    if (summerHealthProducts.length >= 4) {
+      setError("Maximum 4 Summer Health products allowed");
+      return;
+    }
+    try {
+      const { error } = await supabase
+        .from("summer_health_products")
+        .insert([{ product_id: productId }]);
+      if (error) throw new Error("Failed to add Summer Health product");
+      fetchData();
+    } catch (err: any) {
+      setError(err.message || "Failed to add Summer Health product");
+    }
+  };
+
+  const removeSummerHealthProduct = async (id: number) => {
+    try {
+      const { error } = await supabase
+        .from("summer_health_products")
+        .delete()
+        .eq("id", id);
+      if (error) throw new Error("Failed to remove Summer Health product");
+      fetchData();
+    } catch (err: any) {
+      setError(err.message || "Failed to remove Summer Health product");
+    }
+  };
+
+  const addFeaturedBrand = async (brandName: string) => {
+    if (featuredBrands.length >= 6) {
+      setError("Maximum 6 featured brands allowed");
+      return;
+    }
+    try {
+      const { error } = await supabase
+        .from("featured_brands")
+        .insert([{ brand_name: brandName }]);
+      if (error) throw new Error("Failed to add featured brand");
+      fetchData();
+    } catch (err: any) {
+      setError(err.message || "Failed to add featured brand");
+    }
+  };
+
+  const removeFeaturedBrand = async (id: number) => {
+    try {
+      const { error } = await supabase
+        .from("featured_brands")
+        .delete()
+        .eq("id", id);
+      if (error) throw new Error("Failed to remove featured brand");
+      fetchData();
+    } catch (err: any) {
+      setError(err.message || "Failed to remove featured brand");
+    }
+  };
+
+  const handleBannerSubmit = async (e: React.FormEvent) => {
+    e.preventDefault();
+    setError("");
+    setLoading(true);
+    try {
+      let finalImageUrl = bannerForm.imageUrl;
+      if (bannerForm.image) {
+        const fileExt = bannerForm.image.name.split(".").pop();
+        const fileName = `${Date.now()}.${fileExt}`;
+        const { data, error: uploadError } = await supabase.storage
+          .from("banners")
+          .upload(fileName, bannerForm.image);
+        if (uploadError)
+          throw new Error(
+            `Failed to upload banner image: ${uploadError.message}`
+          );
+        const { data: publicUrlData } = supabase.storage
+          .from("banners")
+          .getPublicUrl(fileName);
+        finalImageUrl = publicUrlData.publicUrl;
+      } else {
+        throw new Error("Please select an image to upload");
+      }
+
+      const { error: insertError } = await supabase
+        .from("banners")
+        .insert([{ image_url: finalImageUrl }]);
+      if (insertError)
+        throw new Error(`Failed to save banner: ${insertError.message}`);
+
+      setBannerForm({ image: null, imageUrl: null });
+      setShowBannerForm(false);
+      fetchData();
+    } catch (err: any) {
+      setError(err.message || "Failed to save banner");
+      console.error("Banner submit error:", err);
+    } finally {
+      setLoading(false);
+    }
+  };
+
+  const deleteBanner = async (id: number) => {
+    if (confirm("Are you sure you want to delete this banner?")) {
+      try {
+        const { error } = await supabase.from("banners").delete().eq("id", id);
+        if (error) throw new Error("Failed to delete banner");
+        fetchData();
+      } catch (err: any) {
+        setError(err.message || "Failed to delete banner");
+      }
     }
   };
 
@@ -643,11 +833,191 @@ export default function AdminPanel() {
           "consultations",
           "users",
           "bestSellers",
+          "hero",
         ]}
       />
 
       {loading && <p className="text-gray-600">Loading...</p>}
       {error && <p className="text-red-500 mb-4">{error}</p>}
+
+      {activeTab === "hero" && !loading && (
+        <div className="space-y-8">
+          {/* Banners Section */}
+          <div>
+            <h2 className="text-xl font-bold mb-4">Banners</h2>
+            <button
+              onClick={() => {
+                console.log(
+                  "Add New Banner clicked, current showBannerForm:",
+                  showBannerForm
+                );
+                setShowBannerForm(true);
+              }}
+              className="bg-green-600 text-white px-6 py-2 rounded-lg mb-6 hover:bg-green-700"
+              disabled={loading}
+            >
+              Add New Banner
+            </button>
+            <div className="grid gap-4">
+              {banners.map((banner) => (
+                <div
+                  key={banner.id}
+                  className="flex items-center gap-4 bg-white p-4 rounded-lg"
+                >
+                  <img
+                    src={banner.image_url}
+                    alt="Banner"
+                    className="w-32 h-32 object-cover rounded"
+                  />
+                  <button
+                    onClick={() => deleteBanner(banner.id)}
+                    className="ml-auto bg-red-600 text-white px-4 py-2 rounded hover:bg-red-700"
+                  >
+                    Delete
+                  </button>
+                </div>
+              ))}
+            </div>
+          </div>
+
+          {/* Summer Health Products Section */}
+          <div>
+            <h2 className="text-xl font-bold mb-4">
+              Summer Health Special ({summerHealthProducts.length}/4)
+            </h2>
+            <select
+              onChange={(e) => addSummerHealthProduct(Number(e.target.value))}
+              className="w-full max-w-xs p-2 border rounded mb-4"
+              value=""
+              disabled={summerHealthProducts.length >= 4}
+            >
+              <option value="">Select a product</option>
+              {products
+                .filter(
+                  (p) =>
+                    !summerHealthProducts.some((sh) => sh.product_id === p.id)
+                )
+                .map((product) => (
+                  <option key={product.id} value={product.id}>
+                    {product.name} ({product.brand})
+                  </option>
+                ))}
+            </select>
+            <div className="grid gap-4">
+              {summerHealthProducts.map((sh) => (
+                <div
+                  key={sh.id}
+                  className="flex items-center gap-4 bg-white p-4 rounded-lg"
+                >
+                  <img
+                    src={sh.products.image}
+                    alt={sh.products.name}
+                    className="w-16 h-16 object-cover rounded"
+                  />
+                  <span>
+                    {sh.products.name} ({sh.products.brand})
+                  </span>
+                  <button
+                    onClick={() => removeSummerHealthProduct(sh.id)}
+                    className="ml-auto bg-red-600 text-white px-4 py-2 rounded hover:bg-red-700"
+                  >
+                    Remove
+                  </button>
+                </div>
+              ))}
+            </div>
+          </div>
+
+          {/* Featured Brands Section */}
+          <div>
+            <h2 className="text-xl font-bold mb-4">
+              Featured Brands ({featuredBrands.length}/6)
+            </h2>
+            <select
+              onChange={(e) => addFeaturedBrand(e.target.value)}
+              className="w-full max-w-xs p-2 border rounded mb-4"
+              value=""
+              disabled={featuredBrands.length >= 6}
+            >
+              <option value="">Select a brand</option>
+              {[...new Set(products.map((p) => p.brand))]
+                .filter(
+                  (brand) =>
+                    !featuredBrands.some((fb) => fb.brand_name === brand)
+                )
+                .map((brand) => (
+                  <option key={brand} value={brand}>
+                    {brand}
+                  </option>
+                ))}
+            </select>
+            <div className="grid gap-4">
+              {featuredBrands.map((brand) => (
+                <div
+                  key={brand.id}
+                  className="flex items-center gap-4 bg-white p-4 rounded-lg"
+                >
+                  <span>{brand.brand_name}</span>
+                  <button
+                    onClick={() => removeFeaturedBrand(brand.id)}
+                    className="ml-auto bg-red-600 text-white px-4 py-2 rounded hover:bg-red-700"
+                  >
+                    Remove
+                  </button>
+                </div>
+              ))}
+            </div>
+          </div>
+
+          {showBannerForm && (
+            <div className="fixed inset-0 bg-black/50 flex items-center justify-center z-50">
+              <div className="bg-white p-6 rounded-lg w-full max-w-md">
+                <h2 className="text-xl font-bold mb-4">Add Banner</h2>
+                {error && <p className="text-red-500 mb-4">{error}</p>}
+                <form onSubmit={handleBannerSubmit}>
+                  <div className="mb-4">
+                    <label className="block text-sm font-medium mb-1">
+                      Banner Image
+                    </label>
+                    <input
+                      type="file"
+                      accept="image/*"
+                      onChange={(e) => {
+                        const file = e.target.files?.[0] ?? null;
+                        console.log("File selected:", file);
+                        setBannerForm({ ...bannerForm, image: file });
+                      }}
+                      className="w-full p-2 border rounded"
+                      disabled={loading}
+                    />
+                  </div>
+                  <div className="flex gap-4">
+                    <button
+                      type="submit"
+                      className="bg-blue-600 text-white px-4 py-2 rounded hover:bg-blue-700 disabled:bg-blue-400"
+                      disabled={loading}
+                    >
+                      {loading ? "Saving..." : "Save"}
+                    </button>
+                    <button
+                      type="button"
+                      onClick={() => {
+                        console.log("Cancel clicked");
+                        setShowBannerForm(false);
+                        setError("");
+                      }}
+                      className="bg-gray-300 px-4 py-2 rounded hover:bg-gray-400"
+                      disabled={loading}
+                    >
+                      Cancel
+                    </button>
+                  </div>
+                </form>
+              </div>
+            </div>
+          )}
+        </div>
+      )}
 
       {activeTab === "products" && !loading && (
         <>

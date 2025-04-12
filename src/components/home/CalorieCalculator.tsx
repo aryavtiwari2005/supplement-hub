@@ -164,19 +164,19 @@ export default function CalorieCalculator() {
       variants={containerVariants}
       initial="hidden"
       animate="visible"
-      className={`p-8 pb-12 mb-12 rounded-2xl shadow-xl mx-auto max-w-3xl ${
+      className={`p-4 sm:p-8 pb-8 sm:pb-12 mb-8 sm:mb-12 rounded-xl sm:rounded-2xl shadow-xl mx-auto w-full max-w-md sm:max-w-3xl ${
         theme === "light"
           ? "bg-gradient-to-br from-white to-gray-100"
           : "bg-gradient-to-br from-gray-800 to-gray-900"
       }`}
     >
       {/* Toggle */}
-      <div className="flex justify-center gap-6 mb-8">
+      <div className="flex flex-col sm:flex-row justify-center gap-4 sm:gap-6 mb-6 sm:mb-8">
         <motion.div
           variants={tabVariants}
           animate={activeCalculator === "calorie" ? "active" : "inactive"}
           onClick={() => setActiveCalculator("calorie")}
-          className={`flex items-center gap-2 px-6 py-3 rounded-full cursor-pointer ${
+          className={`flex items-center justify-center gap-2 px-4 sm:px-6 py-2 sm:py-3 rounded-full cursor-pointer w-full sm:w-auto ${
             theme === "light"
               ? "bg-white text-gray-800"
               : "bg-gray-800 text-white"
@@ -184,14 +184,16 @@ export default function CalorieCalculator() {
             activeCalculator === "calorie" ? "shadow-lg" : "hover:bg-opacity-80"
           }`}
         >
-          <Scale className="h-5 w-5" />
-          <span className="font-semibold">Calorie Calculator</span>
+          <Scale className="h-4 sm:h-5 w-4 sm:w-5" />
+          <span className="font-semibold text-sm sm:text-base">
+            Calorie Calculator
+          </span>
         </motion.div>
         <motion.div
           variants={tabVariants}
           animate={activeCalculator === "bmi" ? "active" : "inactive"}
           onClick={() => setActiveCalculator("bmi")}
-          className={`flex items-center gap-2 px-6 py-3 rounded-full cursor-pointer ${
+          className={`flex items-center justify-center gap-2 px-4 sm:px-6 py-2 sm:py-3 rounded-full cursor-pointer w-full sm:w-auto ${
             theme === "light"
               ? "bg-white text-gray-800"
               : "bg-gray-800 text-white"
@@ -199,8 +201,10 @@ export default function CalorieCalculator() {
             activeCalculator === "bmi" ? "shadow-lg" : "hover:bg-opacity-80"
           }`}
         >
-          <Ruler className="h-5 w-5" />
-          <span className="font-semibold">BMI Calculator</span>
+          <Ruler className="h-4 sm:h-5 w-4 sm:w-5" />
+          <span className="font-semibold text-sm sm:text-base">
+            BMI Calculator
+          </span>
         </motion.div>
       </div>
 
@@ -208,7 +212,7 @@ export default function CalorieCalculator() {
       {activeCalculator === "calorie" ? (
         <>
           <h2
-            className={`text-4xl font-extrabold text-center mb-4 ${
+            className={`text-2xl sm:text-4xl font-extrabold text-center mb-3 sm:mb-4 ${
               theme === "light" ? "text-gray-800" : "text-white"
             }`}
           >
@@ -222,18 +226,18 @@ export default function CalorieCalculator() {
             </span>
           </h2>
           <p
-            className={`text-center mb-8 text-lg ${
+            className={`text-center mb-6 sm:mb-8 text-sm sm:text-lg ${
               theme === "light" ? "text-gray-600" : "text-gray-300"
             }`}
           >
             Find out how many calories you need daily to fuel your goals.
           </p>
 
-          <form onSubmit={calculateCalories} className="space-y-6">
+          <form onSubmit={calculateCalories} className="space-y-4 sm:space-y-6">
             <motion.div variants={inputVariants} className="relative">
               <label
                 htmlFor="age"
-                className={`block mb-2 font-medium ${
+                className={`block mb-1 sm:mb-2 font-medium text-sm sm:text-base ${
                   theme === "light" ? "text-gray-700" : "text-gray-200"
                 }`}
               >
@@ -241,7 +245,7 @@ export default function CalorieCalculator() {
               </label>
               <div className="relative">
                 <User
-                  className={`absolute left-3 top-1/2 transform -translate-y-1/2 h-5 w-5 ${
+                  className={`absolute left-3 top-1/2 transform -translate-y-1/2 h-4 sm:h-5 w-4 sm:w-5 ${
                     theme === "light" ? "text-gray-400" : "text-gray-500"
                   }`}
                 />
@@ -251,7 +255,7 @@ export default function CalorieCalculator() {
                   name="age"
                   value={calorieForm.age}
                   onChange={handleCalorieChange}
-                  className={`w-full pl-10 pr-4 py-3 rounded-lg border shadow-sm ${
+                  className={`w-full pl-10 pr-3 sm:pr-4 py-2 sm:py-3 rounded-lg border shadow-sm text-sm sm:text-base ${
                     theme === "light"
                       ? "bg-white border-gray-200 text-gray-800"
                       : "bg-gray-700 border-gray-600 text-white"
@@ -265,7 +269,7 @@ export default function CalorieCalculator() {
             <motion.div variants={inputVariants}>
               <label
                 htmlFor="gender"
-                className={`block mb-2 font-medium ${
+                className={`block mb-1 sm:mb-2 font-medium text-sm sm:text-base ${
                   theme === "light" ? "text-gray-700" : "text-gray-200"
                 }`}
               >
@@ -276,7 +280,7 @@ export default function CalorieCalculator() {
                 name="gender"
                 value={calorieForm.gender}
                 onChange={handleCalorieChange}
-                className={`w-full p-3 rounded-lg border shadow-sm ${
+                className={`w-full p-2 sm:p-3 rounded-lg border shadow-sm text-sm sm:text-base ${
                   theme === "light"
                     ? "bg-white border-gray-200 text-gray-800"
                     : "bg-gray-700 border-gray-600 text-white"
@@ -291,7 +295,7 @@ export default function CalorieCalculator() {
             <motion.div variants={inputVariants} className="relative">
               <label
                 htmlFor="weight"
-                className={`block mb-2 font-medium ${
+                className={`block mb-1 sm:mb-2 font-medium text-sm sm:text-base ${
                   theme === "light" ? "text-gray-700" : "text-gray-200"
                 }`}
               >
@@ -299,7 +303,7 @@ export default function CalorieCalculator() {
               </label>
               <div className="relative">
                 <Scale
-                  className={`absolute left-3 top-1/2 transform -translate-y-1/2 h-5 w-5 ${
+                  className={`absolute left-3 top-1/2 transform -translate-y-1/2 h-4 sm:h-5 w-4 sm:w-5 ${
                     theme === "light" ? "text-gray-400" : "text-gray-500"
                   }`}
                 />
@@ -309,7 +313,7 @@ export default function CalorieCalculator() {
                   name="weight"
                   value={calorieForm.weight}
                   onChange={handleCalorieChange}
-                  className={`w-full pl-10 pr-4 py-3 rounded-lg border shadow-sm ${
+                  className={`w-full pl-10 pr-3 sm:pr-4 py-2 sm:py-3 rounded-lg border shadow-sm text-sm sm:text-base ${
                     theme === "light"
                       ? "bg-white border-gray-200 text-gray-800"
                       : "bg-gray-700 border-gray-600 text-white"
@@ -324,7 +328,7 @@ export default function CalorieCalculator() {
             <motion.div variants={inputVariants} className="relative">
               <label
                 htmlFor="height"
-                className={`block mb-2 font-medium ${
+                className={`block mb-1 sm:mb-2 font-medium text-sm sm:text-base ${
                   theme === "light" ? "text-gray-700" : "text-gray-200"
                 }`}
               >
@@ -332,7 +336,7 @@ export default function CalorieCalculator() {
               </label>
               <div className="relative">
                 <Ruler
-                  className={`absolute left-3 top-1/2 transform -translate-y-1/2 h-5 w-5 ${
+                  className={`absolute left-3 top-1/2 transform -translate-y-1/2 h-4 sm:h-5 w-4 sm:w-5 ${
                     theme === "light" ? "text-gray-400" : "text-gray-500"
                   }`}
                 />
@@ -342,7 +346,7 @@ export default function CalorieCalculator() {
                   name="height"
                   value={calorieForm.height}
                   onChange={handleCalorieChange}
-                  className={`w-full pl-10 pr-4 py-3 rounded-lg border shadow-sm ${
+                  className={`w-full pl-10 pr-3 sm:pr-4 py-2 sm:py-3 rounded-lg border shadow-sm text-sm sm:text-base ${
                     theme === "light"
                       ? "bg-white border-gray-200 text-gray-800"
                       : "bg-gray-700 border-gray-600 text-white"
@@ -357,7 +361,7 @@ export default function CalorieCalculator() {
             <motion.div variants={inputVariants}>
               <label
                 htmlFor="activityLevel"
-                className={`block mb-2 font-medium ${
+                className={`block mb-1 sm:mb-2 font-medium text-sm sm:text-base ${
                   theme === "light" ? "text-gray-700" : "text-gray-200"
                 }`}
               >
@@ -365,7 +369,7 @@ export default function CalorieCalculator() {
               </label>
               <div className="relative">
                 <Activity
-                  className={`absolute left-3 top-1/2 transform -translate-y-1/2 h-5 w-5 ${
+                  className={`absolute left-3 top-1/2 transform -translate-y-1/2 h-4 sm:h-5 w-4 sm:w-5 ${
                     theme === "light" ? "text-gray-400" : "text-gray-500"
                   }`}
                 />
@@ -374,7 +378,7 @@ export default function CalorieCalculator() {
                   name="activityLevel"
                   value={calorieForm.activityLevel}
                   onChange={handleCalorieChange}
-                  className={`w-full pl-10 pr-4 py-3 rounded-lg border shadow-sm ${
+                  className={`w-full pl-10 pr-3 sm:pr-4 py-2 sm:py-3 rounded-lg border shadow-sm text-sm sm:text-base ${
                     theme === "light"
                       ? "bg-white border-gray-200 text-gray-800"
                       : "bg-gray-700 border-gray-600 text-white"
@@ -402,7 +406,7 @@ export default function CalorieCalculator() {
               <motion.p
                 initial={{ opacity: 0 }}
                 animate={{ opacity: 1 }}
-                className="text-red-500 text-center text-sm font-medium"
+                className="text-red-500 text-center text-xs sm:text-sm font-medium"
               >
                 {error}
               </motion.p>
@@ -414,7 +418,7 @@ export default function CalorieCalculator() {
               initial="initial"
               whileHover="hover"
               whileTap="tap"
-              className={`w-full py-3 rounded-full font-semibold shadow-lg ${
+              className={`w-full py-2 sm:py-3 rounded-full font-semibold shadow-lg text-sm sm:text-base ${
                 theme === "light"
                   ? "bg-yellow-500 text-black hover:bg-yellow-600"
                   : "bg-yellow-600 text-white hover:bg-yellow-700"
@@ -429,28 +433,28 @@ export default function CalorieCalculator() {
               initial={{ opacity: 0, scale: 0.9 }}
               animate={{ opacity: 1, scale: 1 }}
               transition={{ duration: 0.5, type: "spring", stiffness: 100 }}
-              className={`mt-8 p-6 rounded-xl shadow-inner text-center ${
+              className={`mt-6 sm:mt-8 p-4 sm:p-6 rounded-xl shadow-inner text-center ${
                 theme === "light"
                   ? "bg-gradient-to-r from-yellow-100 to-yellow-200"
                   : "bg-gradient-to-r from-gray-700 to-gray-600"
               }`}
             >
               <h3
-                className={`text-xl font-semibold mb-2 ${
+                className={`text-lg sm:text-xl font-semibold mb-1 sm:mb-2 ${
                   theme === "light" ? "text-gray-800" : "text-white"
                 }`}
               >
                 Your Daily Calorie Needs
               </h3>
               <p
-                className={`text-4xl font-extrabold ${
+                className={`text-2xl sm:text-4xl font-extrabold ${
                   theme === "light" ? "text-yellow-600" : "text-yellow-400"
                 }`}
               >
-                {calories} <span className="text-xl">kcal</span>
+                {calories} <span className="text-base sm:text-xl">kcal</span>
               </p>
               <p
-                className={`mt-2 text-sm ${
+                className={`mt-1 sm:mt-2 text-xs sm:text-sm ${
                   theme === "light" ? "text-gray-600" : "text-gray-300"
                 }`}
               >
@@ -463,7 +467,7 @@ export default function CalorieCalculator() {
       ) : (
         <>
           <h2
-            className={`text-4xl font-extrabold text-center mb-4 ${
+            className={`text-2xl sm:text-4xl font-extrabold text-center mb-3 sm:mb-4 ${
               theme === "light" ? "text-gray-800" : "text-white"
             }`}
           >
@@ -475,18 +479,18 @@ export default function CalorieCalculator() {
             </span>
           </h2>
           <p
-            className={`text-center mb-8 text-lg ${
+            className={`text-center mb-6 sm:mb-8 text-sm sm:text-lg ${
               theme === "light" ? "text-gray-600" : "text-gray-300"
             }`}
           >
             Calculate your Body Mass Index to understand your weight status.
           </p>
 
-          <form onSubmit={calculateBMI} className="space-y-6">
+          <form onSubmit={calculateBMI} className="space-y-4 sm:space-y-6">
             <motion.div variants={inputVariants} className="relative">
               <label
                 htmlFor="weight"
-                className={`block mb-2 font-medium ${
+                className={`block mb-1 sm:mb-2 font-medium text-sm sm:text-base ${
                   theme === "light" ? "text-gray-700" : "text-gray-200"
                 }`}
               >
@@ -494,7 +498,7 @@ export default function CalorieCalculator() {
               </label>
               <div className="relative">
                 <Scale
-                  className={`absolute left-3 top-1/2 transform -translate-y-1/2 h-5 w-5 ${
+                  className={`absolute left-3 top-1/2 transform -translate-y-1/2 h-4 sm:h-5 w-4 sm:w-5 ${
                     theme === "light" ? "text-gray-400" : "text-gray-500"
                   }`}
                 />
@@ -504,7 +508,7 @@ export default function CalorieCalculator() {
                   name="weight"
                   value={bmiForm.weight}
                   onChange={handleBMIChange}
-                  className={`w-full pl-10 pr-4 py-3 rounded-lg border shadow-sm ${
+                  className={`w-full pl-10 pr-3 sm:pr-4 py-2 sm:py-3 rounded-lg border shadow-sm text-sm sm:text-base ${
                     theme === "light"
                       ? "bg-white border-gray-200 text-gray-800"
                       : "bg-gray-700 border-gray-600 text-white"
@@ -519,7 +523,7 @@ export default function CalorieCalculator() {
             <motion.div variants={inputVariants} className="relative">
               <label
                 htmlFor="height"
-                className={`block mb-2 font-medium ${
+                className={`block mb-1 sm:mb-2 font-medium text-sm sm:text-base ${
                   theme === "light" ? "text-gray-700" : "text-gray-200"
                 }`}
               >
@@ -527,7 +531,7 @@ export default function CalorieCalculator() {
               </label>
               <div className="relative">
                 <Ruler
-                  className={`absolute left-3 top-1/2 transform -translate-y-1/2 h-5 w-5 ${
+                  className={`absolute left-3 top-1/2 transform -translate-y-1/2 h-4 sm:h-5 w-4 sm:w-5 ${
                     theme === "light" ? "text-gray-400" : "text-gray-500"
                   }`}
                 />
@@ -537,7 +541,7 @@ export default function CalorieCalculator() {
                   name="height"
                   value={bmiForm.height}
                   onChange={handleBMIChange}
-                  className={`w-full pl-10 pr-4 py-3 rounded-lg border shadow-sm ${
+                  className={`w-full pl-10 pr-3 sm:pr-4 py-2 sm:py-3 rounded-lg border shadow-sm text-sm sm:text-base ${
                     theme === "light"
                       ? "bg-white border-gray-200 text-gray-800"
                       : "bg-gray-700 border-gray-600 text-white"
@@ -553,7 +557,7 @@ export default function CalorieCalculator() {
               <motion.p
                 initial={{ opacity: 0 }}
                 animate={{ opacity: 1 }}
-                className="text-red-500 text-center text-sm font-medium"
+                className="text-red-500 text-center text-xs sm:text-sm font-medium"
               >
                 {error}
               </motion.p>
@@ -565,7 +569,7 @@ export default function CalorieCalculator() {
               initial="initial"
               whileHover="hover"
               whileTap="tap"
-              className={`w-full py-3 rounded-full font-semibold shadow-lg ${
+              className={`w-full py-2 sm:py-3 rounded-full font-semibold shadow-lg text-sm sm:text-base ${
                 theme === "light"
                   ? "bg-blue-500 text-white hover:bg-blue-600"
                   : "bg-blue-600 text-white hover:bg-blue-700"
@@ -580,28 +584,28 @@ export default function CalorieCalculator() {
               initial={{ opacity: 0, scale: 0.9 }}
               animate={{ opacity: 1, scale: 1 }}
               transition={{ duration: 0.5, type: "spring", stiffness: 100 }}
-              className={`mt-8 p-6 rounded-xl shadow-inner text-center ${
+              className={`mt-6 sm:mt-8 p-4 sm:p-6 rounded-xl shadow-inner text-center ${
                 theme === "light"
                   ? "bg-gradient-to-r from-blue-100 to-blue-200"
                   : "bg-gradient-to-r from-gray-700 to-gray-600"
               }`}
             >
               <h3
-                className={`text-xl font-semibold mb-2 ${
+                className={`text-lg sm:text-xl font-semibold mb-1 sm:mb-2 ${
                   theme === "light" ? "text-gray-800" : "text-white"
                 }`}
               >
                 Your BMI Result
               </h3>
               <p
-                className={`text-4xl font-extrabold ${
+                className={`text-2xl sm:text-4xl font-extrabold ${
                   theme === "light" ? "text-blue-600" : "text-blue-400"
                 }`}
               >
                 {bmi}
               </p>
               <p
-                className={`mt-2 text-lg font-medium ${
+                className={`mt-1 sm:mt-2 text-sm sm:text-lg font-medium ${
                   theme === "light" ? "text-gray-700" : "text-gray-200"
                 }`}
               >

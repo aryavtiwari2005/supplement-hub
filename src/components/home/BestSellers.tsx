@@ -50,12 +50,12 @@ export default function BestSellers() {
     return (
       <section
         id="best-selling-supplements"
-        className={`container mx-auto mt-12 px-4 py-16 mb-12 ${
+        className={`container mx-auto mt-8 sm:mt-12 px-4 sm:px-6 lg:px-8 py-12 sm:py-16 mb-8 sm:mb-12 ${
           theme === "light" ? "bg-white text-black" : "bg-gray-900 text-white"
         }`}
       >
         <h2
-          className={`text-4xl font-bold text-center mb-12 ${
+          className={`text-2xl sm:text-3xl md:text-4xl font-bold text-center mb-8 sm:mb-12 ${
             theme === "light" ? "text-black" : "text-white"
           }`}
         >
@@ -79,12 +79,12 @@ export default function BestSellers() {
     return (
       <section
         id="best-selling-supplements"
-        className={`container mx-auto mt-12 px-4 py-16 mb-12 ${
+        className={`container mx-auto mt-8 sm:mt-12 px-4 sm:px-6 lg:px-8 py-12 sm:py-16 mb-8 sm:mb-12 ${
           theme === "light" ? "bg-white text-black" : "bg-gray-900 text-white"
         }`}
       >
         <h2
-          className={`text-4xl font-bold text-center mb-12 ${
+          className={`text-2xl sm:text-3xl md:text-4xl font-bold text-center mb-8 sm:mb-12 ${
             theme === "light" ? "text-black" : "text-white"
           }`}
         >
@@ -107,7 +107,7 @@ export default function BestSellers() {
   return (
     <section
       id="best-selling-supplements"
-      className={`container mx-auto mt-12 px-4 py-16 mb-12 ${
+      className={`container mx-auto mt-8 sm:mt-12 px-4 sm:px-6 lg:px-8 py-12 sm:py-16 mb-8 sm:mb-12 ${
         theme === "light" ? "bg-white text-black" : "bg-gray-900 text-white"
       }`}
     >
@@ -118,7 +118,7 @@ export default function BestSellers() {
         viewport={{ once: true }}
       >
         <h2
-          className={`text-4xl font-bold text-center mb-12 ${
+          className={`text-2xl sm:text-3xl md:text-4xl font-bold text-center mb-8 sm:mb-12 ${
             theme === "light" ? "text-black" : "text-white"
           }`}
         >
@@ -139,7 +139,7 @@ export default function BestSellers() {
           initial="hidden"
           whileInView="visible"
           viewport={{ once: true }}
-          className="grid md:grid-cols-4 gap-8"
+          className="grid grid-cols-2 sm:grid-cols-2 md:grid-cols-3 lg:grid-cols-4 gap-4 sm:gap-6 lg:gap-8"
         >
           {bestSellers.map((product) => (
             <ProductCard

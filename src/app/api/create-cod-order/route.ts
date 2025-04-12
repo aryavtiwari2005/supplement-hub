@@ -116,7 +116,7 @@ export async function POST(req: NextRequest) {
     const newOrder = {
       items: cartItems,
       total,
-      status: "pending",
+      status: "Order placed",
       address,
       discount: totalDiscount,
       order_id: orderId,

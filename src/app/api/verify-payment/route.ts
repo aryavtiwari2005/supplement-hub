@@ -152,7 +152,7 @@ export async function GET(req: NextRequest) {
         total: pendingOrder.amount,
         subtotal: pendingOrder.subtotal,
         discount: pendingOrder.discount,
-        status: "pending",
+        status: "Order placed",
         address: pendingOrder.address,
         order_id: orderId,
         created_at: new Date().toISOString(),

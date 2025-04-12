@@ -3,7 +3,7 @@
 import { useState } from "react";
 import Link from "next/link";
 import { motion, AnimatePresence } from "framer-motion";
-import { X } from "lucide-react";
+import { X, ChevronDown } from "lucide-react";
 import { useTheme } from "../ThemeProvider";
 
 interface SubMenuItem {
@@ -47,25 +47,30 @@ export default function MobileNav({
             theme === "light" ? "bg-yellow-50" : "bg-gray-900"
           }`}
           variants={{
-            hidden: { opacity: 0 },
+            hidden: { opacity: 0, x: "-100%" },
             visible: {
               opacity: 1,
-              transition: { delayChildren: 0.2, staggerChildren: 0.1 },
+              x: 0,
+              transition: { type: "spring", stiffness: 100, damping: 20 },
             },
           }}
           initial="hidden"
           animate="visible"
-          exit="hidden"
+          exit={{ opacity: 0, x: "-100%", transition: { duration: 0.2 } }}
         >
-          <div className="relative p-4">
+          <div className="relative p-6">
             <button
               onClick={toggleMenu}
-              className={`absolute top-4 right-4 cursor-pointer`}
+              className={`absolute top-6 right-6 p-2 rounded-full ${
+                theme === "light"
+                  ? "text-black hover:bg-gray-200"
+                  : "text-white hover:bg-gray-700"
+              }`}
             >
-              <X className={theme === "light" ? "text-black" : "text-white"} />
+              <X className="w-6 h-6" />
             </button>
 
-            <div className="mt-12 space-y-4">
+            <div className="mt-16 space-y-6">
               {Object.entries(dropdownMenus).map(([menuName, menuData]) => (
                 <motion.div
                   key={menuName}
@@ -78,75 +83,74 @@ export default function MobileNav({
                     <Link
                       href={menuData.href}
                       onClick={toggleMenu}
-                      className={`flex items-center space-x-2 ${
+                      className={`flex items-center space-x-3 text-lg font-semibold ${
                         theme === "light" ? "text-black" : "text-white"
-                      } font-semibold mb-2 cursor-pointer`}
+                      } hover:text-yellow-500 transition-colors`}
                     >
                       <menuData.icon className="w-6 h-6" />
                       <span>{menuName}</span>
                     </Link>
                   ) : (
-                    <motion.button
-                      className={`flex items-center space-x-2 ${
+                    <button
+                      className={`flex items-center justify-between w-full text-lg font-semibold ${
                         theme === "light" ? "text-black" : "text-white"
-                      } font-semibold mb-2 cursor-pointer`}
+                      } hover:text-yellow-500 transition-colors`}
                       onClick={() =>
                         setActiveDropdown(
                           activeDropdown === menuName ? null : menuName
                         )
                       }
                     >
-                      <menuData.icon className="w-6 h-6" />
-                      <span>{menuName}</span>
-                    </motion.button>
+                      <div className="flex items-center space-x-3">
+                        <menuData.icon className="w-6 h-6" />
+                        <span>{menuName}</span>
+                      </div>
+                      <ChevronDown
+                        className={`w-5 h-5 transition-transform ${
+                          activeDropdown === menuName ? "rotate-180" : ""
+                        }`}
+                      />
+                    </button>
                   )}
                   {menuData.items.length > 0 && activeDropdown === menuName && (
-                    <div className="pl-8 space-y-2">
+                    <div className="pl-10 mt-3 space-y-3">
                       {menuData.items.map((item) => (
                         <div key={item.name}>
                           {item.href ? (
                             <Link
                               href={item.href}
                               onClick={toggleMenu}
-                              className={`flex items-center space-x-2 ${
+                              className={`block text-base ${
                                 theme === "light"
                                   ? "text-gray-700"
                                   : "text-gray-300"
-                              } hover:${
-                                theme === "light" ? "text-black" : "text-white"
-                              } transition-colors cursor-pointer`}
+                              } hover:text-yellow-500 transition-colors`}
                             >
-                              <span>{item.name}</span>
+                              {item.name}
                             </Link>
                           ) : (
-                            <div
-                              className={`flex items-center space-x-2 ${
+                            <span
+                              className={`block text-base ${
                                 theme === "light"
                                   ? "text-gray-700"
                                   : "text-gray-300"
-                              } hover:${
-                                theme === "light" ? "text-black" : "text-white"
-                              } transition-colors cursor-pointer`}
+                              }`}
                             >
-                              <span>{item.name}</span>
-                            </div>
+                              {item.name}
+                            </span>
                           )}
                           {item.subItems && (
-                            <div className="pl-4 space-y-1 mt-1">
+                            <div className="pl-4 mt-2 space-y-2">
                               {item.subItems.map((subItem) => (
                                 <Link
                                   key={subItem.name}
                                   href={subItem.href}
                                   onClick={toggleMenu}
-                                  className={`flex items-center space-x-2 ${
+                                  className={`flex items-center space-x-2 text-sm ${
                                     theme === "light"
-                                      ? "text-gray-700"
-                                      : "text-gray-300"
-                                  } hover:${
-                                    theme === "light"
-                                      ? "text-black"
-                                      : "text-white"
-                                  } transition-colors cursor-pointer`}
+                                      ? "text-gray-600"
+                                      : "text-gray-400"
+                                  } hover:text-yellow-500 transition-colors`}
                                 >
                                   {subItem.icon && (
                                     <subItem.icon className="w-4 h-4" />

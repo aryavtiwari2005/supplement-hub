@@ -37,10 +37,8 @@ export default function ProfileDropdown() {
   const fetchUserData = async () => {
     try {
       const res = await fetch("/api/user", { credentials: "include" });
-      console.log("Fetch /api/user response status:", res.status);
       if (res.ok) {
         const { user: userResponse } = await res.json();
-        console.log("User data from /api/user:", userResponse);
         setUser({ id: userResponse.id });
         setUserData({
           id: userResponse.id,
@@ -49,7 +47,6 @@ export default function ProfileDropdown() {
           orders: userResponse.orders,
         });
       } else {
-        console.log("No user data, setting to null");
         setUser(null);
         setUserData(null);
       }
@@ -61,39 +58,26 @@ export default function ProfileDropdown() {
   };
 
   useEffect(() => {
-    console.log("Running useEffect to fetch user data on mount");
     fetchUserData();
-
-    const handleAuthChange = () => {
-      console.log("authChange event triggered");
-      fetchUserData();
-    };
-
+    const handleAuthChange = () => fetchUserData();
     window.addEventListener("authChange", handleAuthChange);
-
-    return () => {
-      console.log("Cleaning up authChange listener");
-      window.removeEventListener("authChange", handleAuthChange);
-    };
+    return () => window.removeEventListener("authChange", handleAuthChange);
   }, []);
 
   const handleLogin = async (e: React.FormEvent<HTMLFormElement>) => {
     e.preventDefault();
     setLoginError("");
-
     try {
       const res = await fetch("/api/login", {
         method: "POST",
         headers: { "Content-Type": "application/json" },
         body: JSON.stringify({ email, password }),
       });
-
       if (res.ok) {
-        console.log("Login successful, fetching user data");
         setEmail("");
         setPassword("");
         setIsProfileOpen(false);
-        await fetchUserData(); // Fetch user data immediately after login
+        await fetchUserData();
         window.dispatchEvent(new Event("authChange"));
       } else {
         const { message } = await res.json();
@@ -106,7 +90,6 @@ export default function ProfileDropdown() {
   };
 
   const handleLogout = () => {
-    console.log("Logging out");
     fetch("/api/user", {
       method: "POST",
       headers: { "Content-Type": "application/json" },
@@ -127,13 +110,13 @@ export default function ProfileDropdown() {
       <button
         className={`flex items-center space-x-2 ${
           theme === "light" ? "text-black" : "text-white"
-        } hover:text-yellow-500 transition-colors px-3 py-2 rounded-md ${
+        } hover:text-yellow-500 transition-colors px-2 sm:px-3 py-2 rounded-md ${
           theme === "light" ? "bg-yellow-50" : "bg-gray-900"
-        } cursor-pointer`}
+        }`}
         onClick={() => setIsProfileOpen(!isProfileOpen)}
       >
-        <User className="w-6 h-6" />
-        <span className="text-sm font-medium">
+        <User className="w-5 sm:w-6 h-5 sm:h-6" />
+        <span className="text-sm font-medium hidden sm:inline">
           {user ? "Profile" : "Login"}
         </span>
       </button>
@@ -145,35 +128,35 @@ export default function ProfileDropdown() {
             initial="hidden"
             animate="visible"
             exit="exit"
-            className={`absolute right-0 top-full mt-2 w-72 ${
+            className={`absolute right-0 top-full mt-2 w-64 sm:w-72 md:w-80 max-w-[90vw] max-h-[80vh] overflow-y-auto overflow-x-hidden ${
               theme === "light" ? "bg-yellow-50" : "bg-gray-900"
             } rounded-lg shadow-xl border ${
               theme === "light" ? "border-gray-200" : "border-gray-800"
             } z-50`}
           >
-            <div className="p-4">
+            <div className="p-4 sm:p-5">
               {user && userData ? (
                 <>
                   <p
                     className={`${
                       theme === "light" ? "text-black" : "text-white"
-                    } font-semibold`}
+                    } font-semibold text-sm sm:text-base truncate`}
                   >
                     Hello, {userData.email}
                   </p>
                   <p
                     className={`${
                       theme === "light" ? "text-gray-500" : "text-gray-500"
-                    } text-sm`}
+                    } text-xs sm:text-sm`}
                   >
                     Scoop Points: {userData.scoop_points || 0}
                   </p>
-                  <div className="mt-4 space-y-2">
+                  <div className="mt-3 sm:mt-4 space-y-2">
                     <Link
                       href="/profile"
                       className={`${
                         theme === "light" ? "text-black" : "text-white"
-                      } block hover:text-yellow-500`}
+                      } block hover:text-yellow-500 text-sm sm:text-base`}
                       onClick={() => setIsProfileOpen(false)}
                     >
                       My Profile
@@ -182,26 +165,26 @@ export default function ProfileDropdown() {
                       href="/profile/orders"
                       className={`${
                         theme === "light" ? "text-black" : "text-white"
-                      } block hover:text-yellow-500`}
+                      } block hover:text-yellow-500 text-sm sm:text-base`}
                       onClick={() => setIsProfileOpen(false)}
                     >
                       My Orders
                     </Link>
                     <button
                       onClick={handleLogout}
-                      className="w-full text-left text-red-500 hover:text-red-600"
+                      className="w-full text-left text-red-500 hover:text-red-600 text-sm sm:text-base"
                     >
                       Logout
                     </button>
                   </div>
                 </>
               ) : (
-                <form onSubmit={handleLogin} className="space-y-4">
+                <form onSubmit={handleLogin} className="space-y-3 sm:space-y-4">
                   <div>
                     <label
                       className={`block mb-1 ${
                         theme === "light" ? "text-gray-700" : "text-gray-300"
-                      }`}
+                      } text-sm`}
                     >
                       Email
                     </label>
@@ -215,7 +198,7 @@ export default function ProfileDropdown() {
                         type="email"
                         value={email}
                         onChange={(e) => setEmail(e.target.value)}
-                        className={`w-full pl-10 pr-3 py-2 rounded-md ${
+                        className={`w-full pl-10 pr-3 py-2 rounded-md text-sm ${
                           theme === "light"
                             ? "bg-white text-black"
                             : "bg-black text-white"
@@ -233,7 +216,7 @@ export default function ProfileDropdown() {
                     <label
                       className={`block mb-1 ${
                         theme === "light" ? "text-gray-700" : "text-gray-300"
-                      }`}
+                      } text-sm`}
                     >
                       Password
                     </label>
@@ -247,7 +230,7 @@ export default function ProfileDropdown() {
                         type="password"
                         value={password}
                         onChange={(e) => setPassword(e.target.value)}
-                        className={`w-full pl-10 pr-3 py-2 rounded-md ${
+                        className={`w-full pl-10 pr-3 py-2 rounded-md text-sm ${
                           theme === "light"
                             ? "bg-white text-black"
                             : "bg-black text-white"
@@ -262,11 +245,13 @@ export default function ProfileDropdown() {
                     </div>
                   </div>
                   {loginError && (
-                    <p className="text-red-500 text-sm">{loginError}</p>
+                    <p className="text-red-500 text-xs sm:text-sm">
+                      {loginError}
+                    </p>
                   )}
                   <motion.button
                     type="submit"
-                    className="w-full bg-yellow-500 text-white py-2 rounded-md flex items-center justify-center space-x-2 hover:bg-yellow-600 transition-colors"
+                    className="w-full bg-yellow-500 text-white py-2 rounded-md flex items-center justify-center space-x-2 hover:bg-yellow-600 transition-colors text-sm sm:text-base"
                     whileHover={{ scale: 1.05 }}
                     whileTap={{ scale: 0.95 }}
                   >
@@ -276,7 +261,7 @@ export default function ProfileDropdown() {
                   <p
                     className={`text-center ${
                       theme === "light" ? "text-gray-500" : "text-gray-500"
-                    } text-sm`}
+                    } text-xs sm:text-sm whitespace-nowrap`}
                   >
                     Don’t have an account?{" "}
                     <Link

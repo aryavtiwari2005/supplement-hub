@@ -8,7 +8,8 @@ interface TabNavigationProps {
     | "orders"
     | "consultations"
     | "users"
-    | "bestSellers";
+    | "bestSellers"
+    | "hero";
   setActiveTab: (
     tab:
       | "products"
@@ -18,6 +19,7 @@ interface TabNavigationProps {
       | "consultations"
       | "users"
       | "bestSellers"
+      | "hero"
   ) => void;
   tabs: Array<
     | "products"
@@ -27,6 +29,7 @@ interface TabNavigationProps {
     | "consultations"
     | "users"
     | "bestSellers"
+    | "hero"
   >;
 }
 
@@ -35,7 +38,6 @@ export default function TabNavigation({
   setActiveTab,
   tabs,
 }: TabNavigationProps) {
-  // Map tab IDs to human-readable labels
   const tabLabels: { [key: string]: string } = {
     products: "Products",
     coupons: "Coupons",
@@ -44,6 +46,7 @@ export default function TabNavigation({
     consultations: "Consultations",
     users: "Users",
     bestSellers: "Best Sellers",
+    hero: "Hero Section",
   };
 
   return (
