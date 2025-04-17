@@ -1,4 +1,3 @@
-// redux/cartSlice.ts
 import { createSlice, PayloadAction } from "@reduxjs/toolkit";
 
 export interface CartItem {
@@ -12,10 +11,12 @@ export interface CartItem {
 
 interface CartState {
   items: CartItem[];
+  paymentMethod?: "phonePe" | "cod"; // Add paymentMethod to state
 }
 
 const initialState: CartState = {
   items: [],
+  paymentMethod: undefined, // Initialize as undefined
 };
 
 const cartSlice = createSlice({
@@ -50,14 +51,41 @@ const cartSlice = createSlice({
     setCartItems: (state, action: PayloadAction<CartItem[]>) => {
       state.items = action.payload;
     },
+    setPaymentMethod: (
+      state,
+      action: PayloadAction<"phonePe" | "cod" | undefined>
+    ) => {
+      state.paymentMethod = action.payload; // Add reducer to set payment method
+    },
   },
 });
 
-export const { addToCart, removeFromCart, updateQuantity, setCartItems } =
-  cartSlice.actions;
+export const {
+  addToCart,
+  removeFromCart,
+  updateQuantity,
+  setCartItems,
+  setPaymentMethod, // Export new action
+} = cartSlice.actions;
 
 export const selectCartItems = (state: { cart: CartState }) => state.cart.items;
 export const selectCartQuantity = (state: { cart: CartState }) =>
   state.cart.items.reduce((total, item) => total + item.quantity, 0);
+export const selectCartSubtotal = (state: { cart: CartState }) =>
+  state.cart.items.reduce(
+    (total, item) => total + item.price * item.quantity,
+    0
+  );
+export const selectCartTotal = (
+  state: { cart: CartState },
+  couponDiscount: number = 0,
+  scoopPointsToRedeem: number = 0
+) => {
+  const subtotal = selectCartSubtotal(state);
+  const phonePeDiscount =
+    state.cart.paymentMethod === "phonePe" ? subtotal * 0.03 : 0; // 3% discount for PhonePe
+  const totalDiscount = couponDiscount + scoopPointsToRedeem + phonePeDiscount;
+  return Math.max(0, subtotal - totalDiscount);
+};
 
 export default cartSlice.reducer;

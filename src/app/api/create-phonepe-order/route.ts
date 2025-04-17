@@ -18,6 +18,7 @@ export async function POST(req: NextRequest) {
       couponCode,
       orderId,
       scoopPointsToRedeem,
+      phonePeDiscount, // Add phonePeDiscount to payload
     } = await req.json();
 
     if (!cartItems || !userId || !address || !orderId) {
@@ -45,6 +46,15 @@ export async function POST(req: NextRequest) {
     // Apply scoop points discount (1 point = ₹1)
     const scoopPointsDiscount = scoopPointsToRedeem || 0;
 
+    // Apply PhonePe discount (validate to prevent tampering)
+    const calculatedPhonePeDiscount = phonePeDiscount || 0;
+    if (calculatedPhonePeDiscount > subtotal * 0.03) {
+      return NextResponse.json(
+        { error: "Invalid PhonePe discount" },
+        { status: 400 }
+      );
+    }
+
     // Validate scoop points
     const { data: userData, error: userError } = await supabase
       .from("users_onescoop")
@@ -67,7 +77,8 @@ export async function POST(req: NextRequest) {
     }
 
     // Calculate total
-    const totalDiscount = couponDiscount + scoopPointsDiscount;
+    const totalDiscount =
+      couponDiscount + scoopPointsDiscount + calculatedPhonePeDiscount;
     const total = Math.max(0, subtotal - totalDiscount);
     const scoopPointsEarned = Math.floor(total / 100) * 2;
 
@@ -89,6 +100,7 @@ export async function POST(req: NextRequest) {
       scoop_points_earned: scoopPointsEarned,
       discount: totalDiscount,
       subtotal,
+      phonepe_discount: calculatedPhonePeDiscount, // Store PhonePe discount
     });
 
     if (tempError) {

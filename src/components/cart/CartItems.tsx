@@ -68,7 +68,7 @@ const CartItems = ({
   setScoopPointsToRedeem: (points: number) => void;
   availableScoopPoints: number;
 }) => {
-  const [scoopPointsInput, setScoopPointsInput] = useState(""); // New state for input
+  const [scoopPointsInput, setScoopPointsInput] = useState("");
 
   const handleRemoveItem = async (id: number) => {
     if (!user?.id) return setErrorMessage("Please log in.");
@@ -136,7 +136,7 @@ const CartItems = ({
     setSuccessMessage(
       `Redeemed ${points} scoop points for ₹${points} discount.`
     );
-    setScoopPointsInput(""); // Reset input after redemption
+    setScoopPointsInput("");
   };
 
   const couponDiscount = appliedCoupon
@@ -148,79 +148,86 @@ const CartItems = ({
       {cartItems.map((item) => (
         <div
           key={item.id}
-          className={`flex items-center justify-between ${THEMES[theme].border} border-b py-6`}
+          className={`flex flex-col sm:flex-row items-start sm:items-center justify-between ${THEMES[theme].border} border-b py-4 sm:py-6`}
         >
-          <div className="flex items-center space-x-4">
-            <div className="relative w-20 h-20">
+          <div className="flex items-center space-x-3 sm:space-x-4 w-full">
+            <div className="relative w-16 h-16 sm:w-20 sm:h-20 flex-shrink-0">
               <Image
                 src={item.image || "/placeholder-image.jpg"}
                 unoptimized={true}
                 alt={item.name}
                 fill
-                sizes="80px"
+                sizes="(max-width: 640px) 64px, 80px"
                 className="object-cover rounded"
                 onError={(e) =>
                   (e.currentTarget.src = "/placeholder-image.jpg")
                 }
               />
             </div>
-            <div className="flex-1 py-2">
-              <h3 className={`font-semibold ${THEMES[theme].text.primary}`}>
+            <div className="flex-1">
+              <h3
+                className={`text-sm sm:text-base font-semibold ${THEMES[theme].text.primary} line-clamp-2`}
+              >
                 {item.name}
               </h3>
-              <p className={THEMES[theme].text.primary}>
+              <p className={`text-sm ${THEMES[theme].text.primary}`}>
                 ₹{item.price.toFixed(2)}
               </p>
             </div>
           </div>
-          <div className="flex items-center space-x-4">
+          <div className="flex items-center space-x-2 sm:space-x-4 mt-3 sm:mt-0 w-full sm:w-auto justify-between sm:justify-end">
             <div
-              className={`flex items-center space-x-2 ${THEMES[theme].background.secondary} ${THEMES[theme].border} rounded`}
+              className={`flex items-center space-x-1 sm:space-x-2 ${THEMES[theme].background.secondary} ${THEMES[theme].border} rounded`}
             >
               <button
                 onClick={() => handleQuantityChange(item.id, -1)}
-                className={`p-2 ${THEMES[theme].text.primary}`}
+                className={`p-1 sm:p-2 ${THEMES[theme].text.primary}`}
                 disabled={item.quantity <= 1}
+                aria-label="Decrease quantity"
               >
-                <Minus className="w-5 h-5" />
+                <Minus className="w-4 h-4 sm:w-5 sm:h-5" />
               </button>
-              <span className={`px-3 ${THEMES[theme].text.primary}`}>
+              <span
+                className={`px-2 sm:px-3 text-sm ${THEMES[theme].text.primary}`}
+              >
                 {item.quantity}
               </span>
               <button
                 onClick={() => handleQuantityChange(item.id, 1)}
-                className={`p-2 ${THEMES[theme].text.primary}`}
+                className={`p-1 sm:p-2 ${THEMES[theme].text.primary}`}
                 disabled={item.quantity >= 10}
+                aria-label="Increase quantity"
               >
-                <Plus className="w-5 h-5" />
+                <Plus className="w-4 h-4 sm:w-5 sm:h-5" />
               </button>
             </div>
             <button
               onClick={() => handleRemoveItem(item.id)}
               className="text-red-500 hover:text-red-600"
+              aria-label="Remove item"
             >
-              <X className="w-6 h-6" />
+              <X className="w-5 h-5 sm:w-6 sm:h-6" />
             </button>
           </div>
         </div>
       ))}
-      <div className="mt-6 space-y-4">
-        <div className="flex items-center space-x-4">
+      <div className="mt-4 sm:mt-6 space-y-3 sm:space-y-4">
+        <div className="flex flex-col sm:flex-row items-start sm:items-center space-y-2 sm:space-y-0 sm:space-x-3">
           <input
             type="text"
             value={couponCode}
             onChange={(e) => setCouponCode(e.target.value)}
             placeholder="Enter coupon code"
-            className={`p-2 rounded ${THEMES[theme].border} ${THEMES[theme].background.secondary} ${THEMES[theme].text.primary} w-64`}
+            className={`p-2 rounded ${THEMES[theme].border} ${THEMES[theme].background.secondary} ${THEMES[theme].text.primary} w-full sm:w-48`}
           />
           <button
             onClick={handleApplyCoupon}
-            className={`px-4 py-2 rounded bg-yellow-500 text-black hover:bg-yellow-600`}
+            className={`px-3 sm:px-4 py-2 rounded bg-yellow-500 text-black hover:bg-yellow-600 w-full sm:w-auto text-sm sm:text-base`}
           >
             Apply Coupon
           </button>
         </div>
-        <div className="flex items-center space-x-4">
+        <div className="flex flex-col sm:flex-row items-start sm:items-center space-y-2 sm:space-y-0 sm:space-x-3">
           <input
             type="number"
             value={scoopPointsInput}
@@ -228,43 +235,45 @@ const CartItems = ({
             min="0"
             max={availableScoopPoints}
             placeholder={`Redeem scoop points (max ${availableScoopPoints})`}
-            className={`p-2 rounded ${THEMES[theme].border} ${THEMES[theme].background.secondary} ${THEMES[theme].text.primary} w-64`}
+            className={`p-2 rounded ${THEMES[theme].border} ${THEMES[theme].background.secondary} ${THEMES[theme].text.primary} w-full sm:w-48`}
           />
           <button
             onClick={handleRedeemScoopPoints}
-            className={`px-4 py-2 rounded bg-yellow-500 text-black hover:bg-yellow-600`}
+            className={`px-3 sm:px-4 py-2 rounded bg-yellow-500 text-black hover:bg-yellow-600 w-full sm:w-auto text-sm sm:text-base`}
           >
             Redeem Points
           </button>
         </div>
       </div>
-      <div className="text-right mt-6">
-        <p className={`text-lg ${THEMES[theme].text.secondary}`}>
+      <div className="text-right mt-4 sm:mt-6">
+        <p className={`text-base sm:text-lg ${THEMES[theme].text.secondary}`}>
           Subtotal: ₹{subtotal.toFixed(2)}
         </p>
         {appliedCoupon && (
-          <p className={`text-lg ${THEMES[theme].text.secondary}`}>
+          <p className={`text-base sm:text-lg ${THEMES[theme].text.secondary}`}>
             Coupon Discount ({appliedCoupon.discount_percentage}%): -₹
             {couponDiscount.toFixed(2)}
           </p>
         )}
         {scoopPointsToRedeem > 0 && (
-          <p className={`text-lg ${THEMES[theme].text.secondary}`}>
+          <p className={`text-base sm:text-lg ${THEMES[theme].text.secondary}`}>
             Scoop Points Discount: -₹{scoopPointsToRedeem.toFixed(2)}
           </p>
         )}
-        <p className={`text-xl font-bold ${THEMES[theme].text.primary}`}>
+        <p
+          className={`text-lg sm:text-xl font-bold ${THEMES[theme].text.primary}`}
+        >
           Total: ₹{total.toFixed(2)}
         </p>
         <button
           onClick={() => setCheckoutStep(2)}
           disabled={cartItems.length === 0}
-          className={`mt-4 px-6 py-2 rounded bg-yellow-500 text-black hover:bg-yellow-600 ${
+          className={`mt-3 sm:mt-4 px-4 sm:px-6 py-2 rounded bg-yellow-500 text-black hover:bg-yellow-600 text-sm sm:text-base ${
             cartItems.length === 0 ? "opacity-50 cursor-not-allowed" : ""
           }`}
         >
           Proceed to Delivery{" "}
-          <ArrowRight className="inline-block ml-2 w-4 h-4" />
+          <ArrowRight className="inline-block ml-1 sm:ml-2 w-4 h-4" />
         </button>
       </div>
     </div>

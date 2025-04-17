@@ -38,7 +38,7 @@ type User = {
   phone: string;
   address?: UserAddress;
   paymentPreference?: string;
-  scoopPoints?: number; // Added
+  scoopPoints?: number;
 };
 
 type UserAddress = {
@@ -95,7 +95,7 @@ const CartPage = () => {
   const [paymentMethod, setPaymentMethod] = useState<"phonePe" | "cod">(
     "phonePe"
   );
-  const [scoopPointsToRedeem, setScoopPointsToRedeem] = useState(0); // New state
+  const [scoopPointsToRedeem, setScoopPointsToRedeem] = useState(0);
 
   const fetchUserAndCart = async () => {
     try {
@@ -130,16 +130,18 @@ const CartPage = () => {
   const couponDiscount = appliedCoupon
     ? subtotal * (appliedCoupon.discount_percentage / 100)
     : 0;
-  const scoopPointsDiscount = scoopPointsToRedeem; // 1 point = ₹1
+  const scoopPointsDiscount = scoopPointsToRedeem;
   const total = Math.max(0, subtotal - couponDiscount - scoopPointsDiscount);
 
   const isNoidaDelivery = NOIDA_PIN_CODES.includes(address.zipCode);
 
   return (
     <div
-      className={`container mx-auto p-4 ${THEMES[theme].background.primary}`}
+      className={`container mx-auto px-2 sm:px-4 py-4 sm:py-6 ${THEMES[theme].background.primary}`}
     >
-      <h1 className={`text-2xl font-bold mb-6 ${THEMES[theme].text.primary}`}>
+      <h1
+        className={`text-xl sm:text-2xl font-bold mb-4 sm:mb-6 ${THEMES[theme].text.primary}`}
+      >
         Checkout
       </h1>
       <StepIndicator checkoutStep={checkoutStep} theme={theme} />
@@ -155,7 +157,7 @@ const CartPage = () => {
       ) : cartItems.length === 0 && checkoutStep === 1 ? (
         <EmptyCart theme={theme} />
       ) : (
-        <div className="mt-6">
+        <div className="mt-4 sm:mt-6">
           {checkoutStep === 1 && (
             <CartItems
               cartItems={cartItems}

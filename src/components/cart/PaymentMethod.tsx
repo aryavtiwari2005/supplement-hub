@@ -34,6 +34,8 @@ type CouponType = {
   discount_percentage: number;
 };
 
+const PHONEPE_DISCOUNT = 0.03;
+
 const PaymentMethod = ({
   paymentMethod,
   setPaymentMethod,
@@ -69,6 +71,10 @@ const PaymentMethod = ({
   theme: "light";
   scoopPointsToRedeem: number;
 }) => {
+  const phonePeDiscount =
+    paymentMethod === "phonePe" ? total * PHONEPE_DISCOUNT : 0;
+  const finalTotal = total - phonePeDiscount;
+
   const handleCheckout = async () => {
     if (!user?.id || !cartItems.length)
       return setErrorMessage("Cart is empty or user not logged in.");
@@ -103,12 +109,13 @@ const PaymentMethod = ({
           headers: { "Content-Type": "application/json" },
           body: JSON.stringify({
             cartItems,
-            amount: total,
+            amount: finalTotal,
             userId: user.id,
             address,
             couponCode: appliedCoupon?.code,
             orderId,
             scoopPointsToRedeem,
+            phonePeDiscount,
           }),
           credentials: "include",
         });
@@ -153,14 +160,17 @@ const PaymentMethod = ({
 
   return (
     <div
-      className={`p-4 rounded-lg ${THEMES[theme].background.secondary} ${THEMES[theme].border} border`}
+      className={`p-2 sm:p-4 rounded-lg ${THEMES[theme].background.secondary} ${THEMES[theme].border} border`}
     >
-      <h2 className={`text-xl font-bold mb-4 ${THEMES[theme].text.primary}`}>
-        <CreditCard className="inline-block mr-2 mb-1" /> Payment Method
+      <h2
+        className={`text-lg sm:text-xl font-bold mb-3 sm:mb-4 ${THEMES[theme].text.primary}`}
+      >
+        <CreditCard className="inline-block mr-1 sm:mr-2 mb-1 w-4 sm:w-5 h-4 sm:h-5" />{" "}
+        Payment Method
       </h2>
-      <div className="space-y-4">
+      <div className="space-y-3 sm:space-y-4">
         <div
-          className={`p-4 rounded-lg ${
+          className={`p-3 sm:p-4 rounded-lg ${
             THEMES[theme].border
           } border cursor-pointer ${
             paymentMethod === "phonePe" ? "border-yellow-500 bg-yellow-50" : ""
@@ -176,17 +186,19 @@ const PaymentMethod = ({
               className="mr-2"
             />
             <div>
-              <span className={`font-medium ${THEMES[theme].text.primary}`}>
+              <span
+                className={`font-medium text-sm sm:text-base ${THEMES[theme].text.primary}`}
+              >
                 PhonePe Gateway
               </span>
-              <p className={`text-sm ${THEMES[theme].text.muted}`}>
-                Pay securely using UPI
+              <p className={`text-xs sm:text-sm ${THEMES[theme].text.muted}`}>
+                Pay securely using UPI (3% discount applied)
               </p>
             </div>
           </label>
         </div>
         <div
-          className={`p-4 rounded-lg ${
+          className={`p-3 sm:p-4 rounded-lg ${
             THEMES[theme].border
           } border cursor-pointer ${
             paymentMethod === "cod" ? "border-yellow-500 bg-yellow-50" : ""
@@ -202,20 +214,26 @@ const PaymentMethod = ({
               className="mr-2"
             />
             <div>
-              <span className={`font-medium ${THEMES[theme].text.primary}`}>
+              <span
+                className={`font-medium text-sm sm:text-base ${THEMES[theme].text.primary}`}
+              >
                 Cash on Delivery
               </span>
-              <p className={`text-sm ${THEMES[theme].text.muted}`}>
+              <p className={`text-xs sm:text-sm ${THEMES[theme].text.muted}`}>
                 Pay with cash when delivered
               </p>
             </div>
           </label>
         </div>
-        <div className={`mt-6 p-4 rounded-lg ${THEMES[theme].border} border`}>
-          <h3 className={`font-medium mb-2 ${THEMES[theme].text.primary}`}>
+        <div
+          className={`mt-4 sm:mt-6 p-3 sm:p-4 rounded-lg ${THEMES[theme].border} border`}
+        >
+          <h3
+            className={`font-medium mb-2 text-sm sm:text-base ${THEMES[theme].text.primary}`}
+          >
             Order Summary
           </h3>
-          <div className={`text-sm ${THEMES[theme].text.secondary}`}>
+          <div className={`text-xs sm:text-sm ${THEMES[theme].text.secondary}`}>
             <p>
               Items: {cartItems.reduce((sum, item) => sum + item.quantity, 0)}
             </p>
@@ -240,22 +258,28 @@ const PaymentMethod = ({
             {scoopPointsToRedeem > 0 && (
               <p>Scoop Points Discount: -₹{scoopPointsToRedeem.toFixed(2)}</p>
             )}
-            <p className={`font-bold mt-2 ${THEMES[theme].text.primary}`}>
-              Total: ₹{total.toFixed(2)}
+            {phonePeDiscount > 0 && (
+              <p>PhonePe Discount (3%): -₹{phonePeDiscount.toFixed(2)}</p>
+            )}
+            <p
+              className={`font-bold mt-2 text-sm sm:text-base ${THEMES[theme].text.primary}`}
+            >
+              Total: ₹{finalTotal.toFixed(2)}
             </p>
           </div>
         </div>
-        <div className="flex justify-between pt-4">
+        <div className="flex flex-col sm:flex-row justify-between pt-3 sm:pt-4 space-y-2 sm:space-y-0 sm:space-x-3">
           <button
             onClick={() => setCheckoutStep(2)}
-            className={`px-4 py-2 rounded ${THEMES[theme].border} ${THEMES[theme].background.primary} ${THEMES[theme].text.primary}`}
+            className={`px-3 sm:px-4 py-2 rounded ${THEMES[theme].border} ${THEMES[theme].background.primary} ${THEMES[theme].text.primary} text-sm sm:text-base w-full sm:w-auto`}
           >
-            <ArrowLeft className="inline-block mr-2 w-4 h-4" /> Back to Address
+            <ArrowLeft className="inline-block mr-1 sm:mr-2 w-4 h-4" /> Back to
+            Address
           </button>
           <button
             onClick={handleCheckout}
             disabled={isProcessing}
-            className={`px-6 py-2 rounded bg-yellow-500 text-black hover:bg-yellow-600 ${
+            className={`px-4 sm:px-6 py-2 rounded bg-yellow-500 text-black hover:bg-yellow-600 text-sm sm:text-base w-full sm:w-auto ${
               isProcessing ? "opacity-50 cursor-not-allowed" : ""
             }`}
           >

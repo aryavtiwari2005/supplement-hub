@@ -92,7 +92,7 @@ const ProductCard: React.FC<ProductCardProps> = ({
     <motion.div
       whileHover={{ y: -4, transition: { duration: 0.2 } }}
       onClick={handleProductClick}
-      className={`cursor-pointer p-0 rounded-lg overflow-hidden shadow-md transition-all duration-300 h-full flex flex-col w-full max-w-[150px] sm:max-w-none ${
+      className={`cursor-pointer p-0 rounded-lg overflow-hidden shadow-md transition-all duration-300 h-full flex flex-col ${
         isHovered
           ? `shadow-xl ${theme === "light" ? "bg-white" : "bg-gray-800"}`
           : `${theme === "light" ? "bg-white" : "bg-gray-800"}`
@@ -100,7 +100,7 @@ const ProductCard: React.FC<ProductCardProps> = ({
       onMouseEnter={() => setIsHovered(true)}
       onMouseLeave={() => setIsHovered(false)}
     >
-      <div className="relative h-32 sm:h-48 w-full flex-shrink-0 overflow-hidden">
+      <div className="relative h-24 sm:h-32 md:h-40 w-full flex-shrink-0 overflow-hidden">
         <img
           src={product.image}
           alt={product.name}
@@ -108,7 +108,7 @@ const ProductCard: React.FC<ProductCardProps> = ({
           style={{ transform: isHovered ? "scale(1.05)" : "scale(1)" }}
         />
         {product.discount && (
-          <div className="absolute top-1 left-1 bg-red-500 text-white text-[10px] sm:text-xs font-bold px-1 sm:px-1.5 py-0.5 rounded">
+          <div className="absolute top-0.5 left-0.5 bg-red-500 text-white text-[8px] sm:text-[10px] font-bold px-1 sm:px-1.5 py-0.5 rounded">
             {product.discount}% OFF
           </div>
         )}
@@ -117,7 +117,7 @@ const ProductCard: React.FC<ProductCardProps> = ({
       <div className="p-2 sm:p-3 flex flex-col flex-grow">
         {showCategory && product.category && (
           <span
-            className={`text-[10px] sm:text-xs font-medium px-1.5 sm:px-2 py-0.5 rounded mb-1 sm:mb-2 inline-block ${
+            className={`text-[8px] sm:text-[10px] font-medium px-1 sm:px-1.5 py-0.5 rounded mb-1 sm:mb-1.5 inline-block ${
               theme === "light"
                 ? "bg-yellow-100 text-yellow-800"
                 : "bg-yellow-900 text-yellow-200"
@@ -127,9 +127,9 @@ const ProductCard: React.FC<ProductCardProps> = ({
           </span>
         )}
 
-        <div className="flex justify-between items-start mb-1 sm:mb-2">
+        <div className="flex justify-between items-start mb-1 sm:mb-1.5">
           <h3
-            className={`font-semibold text-sm sm:text-base line-clamp-1 ${
+            className={`font-semibold text-xs sm:text-sm md:text-base line-clamp-1 ${
               theme === "light" ? "text-black" : "text-white"
             }`}
           >
@@ -137,9 +137,9 @@ const ProductCard: React.FC<ProductCardProps> = ({
           </h3>
           {product.rating && (
             <div className="flex items-center flex-shrink-0">
-              <Star className="w-3 sm:w-3.5 h-3 sm:h-3.5 text-yellow-400 fill-yellow-400" />
+              <Star className="w-2.5 sm:w-3 md:w-3.5 h-2.5 sm:h-3 md:h-3.5 text-yellow-400 fill-yellow-400" />
               <span
-                className={`ml-0.5 sm:ml-1 text-[10px] sm:text-xs ${
+                className={`ml-0.5 text-[8px] sm:text-[10px] ${
                   theme === "light" ? "text-gray-700" : "text-gray-300"
                 }`}
               >
@@ -151,7 +151,7 @@ const ProductCard: React.FC<ProductCardProps> = ({
 
         {product.description && (
           <p
-            className={`text-[10px] sm:text-xs mb-1 sm:mb-2 line-clamp-2 flex-grow ${
+            className={`text-[8px] sm:text-[10px] mb-1 sm:mb-1.5 line-clamp-2 flex-grow ${
               theme === "light" ? "text-gray-600" : "text-gray-300"
             }`}
           >
@@ -159,18 +159,18 @@ const ProductCard: React.FC<ProductCardProps> = ({
           </p>
         )}
 
-        <div className="mt-1 mb-1 sm:mb-2">
+        <div className="mb-1 sm:mb-1.5">
           {discountedPrice ? (
-            <div className="flex items-center space-x-1 sm:space-x-2">
+            <div className="flex items-center space-x-1">
               <span
-                className={`font-bold text-sm sm:text-base ${
+                className={`font-bold text-xs sm:text-sm md:text-base ${
                   theme === "light" ? "text-black" : "text-white"
                 }`}
               >
                 ₹{discountedPrice.toFixed(2)}
               </span>
               <span
-                className={`text-[10px] sm:text-xs line-through ${
+                className={`text-[8px] sm:text-[10px] line-through ${
                   theme === "light" ? "text-gray-500" : "text-gray-400"
                 }`}
               >
@@ -179,7 +179,7 @@ const ProductCard: React.FC<ProductCardProps> = ({
             </div>
           ) : (
             <span
-              className={`font-bold text-sm sm:text-base ${
+              className={`font-bold text-xs sm:text-sm md:text-base ${
                 theme === "light" ? "text-black" : "text-white"
               }`}
             >
@@ -195,7 +195,7 @@ const ProductCard: React.FC<ProductCardProps> = ({
               e.stopPropagation();
               setSelectedVariant(e.target.value);
             }}
-            className={`w-full p-1 sm:p-1.5 rounded text-[10px] sm:text-xs mb-1 sm:mb-2 ${
+            className={`w-full p-1 sm:p-1.5 rounded text-[8px] sm:text-[10px] mb-1 sm:mb-1.5 ${
               theme === "light"
                 ? "bg-gray-100 text-gray-800 border border-gray-200"
                 : "bg-gray-700 text-white border border-gray-600"
@@ -218,9 +218,9 @@ const ProductCard: React.FC<ProductCardProps> = ({
                 exit={{ opacity: 0, y: -10 }}
                 className={`absolute inset-0 flex items-center justify-center rounded-md ${
                   theme === "light" ? "bg-green-500" : "bg-green-600"
-                } text-white text-[10px] sm:text-xs`}
+                } text-white text-[8px] sm:text-[10px]`}
               >
-                <CheckCircle className="w-3 sm:w-4 h-3 sm:h-4 mr-1" />
+                <CheckCircle className="w-2.5 sm:w-3 h-2.5 sm:h-3 mr-0.5" />
                 Added!
               </motion.div>
             ) : null}
@@ -230,7 +230,7 @@ const ProductCard: React.FC<ProductCardProps> = ({
             onClick={handleAddToCart}
             disabled={isLoading}
             whileTap={{ scale: 0.95 }}
-            className={`mt-1 flex items-center justify-center w-full py-1.5 sm:py-2 rounded-md transition-colors duration-300 text-[10px] sm:text-xs ${
+            className={`mt-1 flex items-center justify-center w-full py-1 sm:py-1.5 rounded-md transition-colors duration-300 text-[8px] sm:text-[10px] ${
               isLoading
                 ? `${
                     theme === "light"
@@ -244,7 +244,7 @@ const ProductCard: React.FC<ProductCardProps> = ({
                   }`
             }`}
           >
-            <ShoppingCart className="w-3 sm:w-4 h-3 sm:h-4 mr-1" />
+            <ShoppingCart className="w-2.5 sm:w-3 h-2.5 sm:h-3 mr-0.5" />
             {isLoading ? "Loading..." : "Add"}
           </motion.button>
         </div>

@@ -32,7 +32,7 @@ const DeliveryAddress = ({
   isNoidaDelivery,
 }: {
   address: UserAddress;
-  setAddress: Dispatch<SetStateAction<UserAddress>>; // Updated type
+  setAddress: Dispatch<SetStateAction<UserAddress>>;
   setCheckoutStep: (step: 1 | 2 | 3) => void;
   setErrorMessage: (message: string) => void;
   setSuccessMessage: (message: string) => void;
@@ -80,15 +80,18 @@ const DeliveryAddress = ({
 
   return (
     <div
-      className={`p-4 rounded-lg ${THEMES[theme].background.secondary} ${THEMES[theme].border} border`}
+      className={`p-2 sm:p-4 rounded-lg ${THEMES[theme].background.secondary} ${THEMES[theme].border} border`}
     >
-      <h2 className={`text-xl font-bold mb-4 ${THEMES[theme].text.primary}`}>
-        <MapPin className="inline-block mr-2 mb-1" /> Delivery Address
+      <h2
+        className={`text-lg sm:text-xl font-bold mb-3 sm:mb-4 ${THEMES[theme].text.primary}`}
+      >
+        <MapPin className="inline-block mr-1 sm:mr-2 mb-1 w-4 sm:w-5 h-4 sm:h-5" />{" "}
+        Delivery Address
       </h2>
-      <div className="space-y-4">
+      <div className="space-y-3 sm:space-y-4">
         <div>
           <label
-            className={`block mb-1 ${THEMES[theme].text.secondary}`}
+            className={`block mb-1 text-sm sm:text-base ${THEMES[theme].text.secondary}`}
             htmlFor="street"
           >
             Street Address *
@@ -100,31 +103,14 @@ const DeliveryAddress = ({
             value={address.street}
             onChange={handleAddressChange}
             placeholder="123 Main St"
-            className={`w-full p-2 rounded ${THEMES[theme].border} ${THEMES[theme].background.primary} ${THEMES[theme].text.primary}`}
+            className={`w-full p-2 rounded ${THEMES[theme].border} ${THEMES[theme].background.primary} ${THEMES[theme].text.primary} text-sm sm:text-base`}
             required
           />
         </div>
-        {/* <div>
-          <label
-            className={`block mb-1 ${THEMES[theme].text.secondary}`}
-            htmlFor="landmark"
-          >
-            Landmark (Optional)
-          </label>
-          <input
-            type="text"
-            id="landmark"
-            name="landmark"
-            value={address.landmark || ""}
-            onChange={handleAddressChange}
-            placeholder="Near XYZ Mall"
-            className={`w-full p-2 rounded ${THEMES[theme].border} ${THEMES[theme].background.primary} ${THEMES[theme].text.primary}`}
-          />
-        </div> */}
-        <div className="grid grid-cols-2 gap-4">
+        <div className="grid grid-cols-1 sm:grid-cols-2 gap-3 sm:gap-4">
           <div>
             <label
-              className={`block mb-1 ${THEMES[theme].text.secondary}`}
+              className={`block mb-1 text-sm sm:text-base ${THEMES[theme].text.secondary}`}
               htmlFor="city"
             >
               City *
@@ -136,13 +122,13 @@ const DeliveryAddress = ({
               value={address.city}
               onChange={handleAddressChange}
               placeholder="Noida"
-              className={`w-full p-2 rounded ${THEMES[theme].border} ${THEMES[theme].background.primary} ${THEMES[theme].text.primary}`}
+              className={`w-full p-2 rounded ${THEMES[theme].border} ${THEMES[theme].background.primary} ${THEMES[theme].text.primary} text-sm sm:text-base`}
               required
             />
           </div>
           <div>
             <label
-              className={`block mb-1 ${THEMES[theme].text.secondary}`}
+              className={`block mb-1 text-sm sm:text-base ${THEMES[theme].text.secondary}`}
               htmlFor="state"
             >
               State *
@@ -154,14 +140,14 @@ const DeliveryAddress = ({
               value={address.state}
               onChange={handleAddressChange}
               placeholder="Uttar Pradesh"
-              className={`w-full p-2 rounded ${THEMES[theme].border} ${THEMES[theme].background.primary} ${THEMES[theme].text.primary}`}
+              className={`w-full p-2 rounded ${THEMES[theme].border} ${THEMES[theme].background.primary} ${THEMES[theme].text.primary} text-sm sm:text-base`}
               required
             />
           </div>
         </div>
         <div>
           <label
-            className={`block mb-1 ${THEMES[theme].text.secondary}`}
+            className={`block mb-1 text-sm sm:text-base ${THEMES[theme].text.secondary}`}
             htmlFor="zipCode"
           >
             PIN Code *
@@ -173,31 +159,32 @@ const DeliveryAddress = ({
             value={address.zipCode}
             onChange={handleAddressChange}
             placeholder="201301"
-            className={`w-full p-2 rounded ${THEMES[theme].border} ${THEMES[theme].background.primary} ${THEMES[theme].text.primary}`}
+            className={`w-full p-2 rounded ${THEMES[theme].border} ${THEMES[theme].background.primary} ${THEMES[theme].text.primary} text-sm sm:text-base`}
             required
           />
           {isNoidaDelivery && (
-            <p className="text-green-600 text-sm mt-1">
+            <p className="text-green-600 text-xs sm:text-sm mt-1">
               Eligible for 1-Day Delivery!
             </p>
           )}
         </div>
-        <div className="flex justify-between pt-4">
+        <div className="flex flex-col sm:flex-row justify-between pt-3 sm:pt-4 space-y-2 sm:space-y-0 sm:space-x-3">
           <button
             onClick={() => setCheckoutStep(1)}
-            className={`px-4 py-2 rounded ${THEMES[theme].border} ${THEMES[theme].background.primary} ${THEMES[theme].text.primary}`}
+            className={`px-3 sm:px-4 py-2 rounded ${THEMES[theme].border} ${THEMES[theme].background.primary} ${THEMES[theme].text.primary} text-sm sm:text-base w-full sm:w-auto`}
           >
-            <ArrowLeft className="inline-block mr-2 w-4 h-4" /> Back to Cart
+            <ArrowLeft className="inline-block mr-1 sm:mr-2 w-4 h-4" /> Back to
+            Cart
           </button>
           <button
             onClick={handleSaveAddress}
             disabled={isProcessing}
-            className={`px-6 py-2 rounded bg-yellow-500 text-black hover:bg-yellow-600 ${
+            className={`px-4 sm:px-6 py-2 rounded bg-yellow-500 text-black hover:bg-yellow-600 text-sm sm:text-base w-full sm:w-auto ${
               isProcessing ? "opacity-50 cursor-not-allowed" : ""
             }`}
           >
             {isProcessing ? "Saving..." : "Continue to Payment"}{" "}
-            <ArrowRight className="inline-block ml-2 w-4 h-4" />
+            <ArrowRight className="inline-block ml-1 sm:ml-2 w-4 h-4" />
           </button>
         </div>
       </div>
