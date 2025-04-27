@@ -2,6 +2,11 @@ import { createClient } from "@supabase/supabase-js";
 import { NextResponse } from "next/server";
 import { Zap } from "lucide-react";
 
+// Define the type for featured_brands table
+interface FeaturedBrand {
+  brand_name: string;
+}
+
 // Initialize Supabase client
 const supabase = createClient(
   process.env.NEXT_PUBLIC_SUPABASE_URL!,
@@ -17,12 +22,12 @@ const formatBrandName = (slug: string) => {
 
 export async function GET() {
   try {
-    // Fetch all products and get unique brands
-    const { data, error } = await supabase
-      .from("products")
-      .select("brand")
-      .limit(10)
-      .not("brand", "is", null); // Exclude null brands
+    // Fetch top 5 featured brands
+    const { data, error } = (await supabase
+      .from("featured_brands")
+      .select("brand_name")
+      .order("added_at", { ascending: false }) // Most recent first
+      .limit(5)) as { data: FeaturedBrand[] | null; error: any };
 
     if (error) {
       console.error("Error fetching brands:", error.message);
@@ -32,20 +37,19 @@ export async function GET() {
       );
     }
 
-    // Extract unique brand names (case-insensitive)
-    const uniqueBrands = [
-      ...new Set(
-        data
-          .map((item) => item.brand?.toLowerCase())
-          .filter((brand): brand is string => brand !== undefined)
-      ),
-    ].map((brand) => ({
-      name: brand.charAt(0).toUpperCase() + brand.slice(1), // Capitalize first letter
-      href: `/brands/${formatBrandName(brand)}`, // Dynamic route for each brand
-      icon: Zap, // You can adjust the icon as needed
+    // Handle null or empty data
+    if (!data) {
+      return NextResponse.json([]);
+    }
+
+    // Format brands for response
+    const brands = data.map((item) => ({
+      name: item.brand_name.charAt(0).toUpperCase() + item.brand_name.slice(1), // Capitalize first letter
+      href: `/brands/${formatBrandName(item.brand_name.toLowerCase())}`, // Dynamic route for each brand
+      icon: Zap, // Consistent with original code
     }));
 
-    return NextResponse.json(uniqueBrands);
+    return NextResponse.json(brands);
   } catch (err) {
     console.error("Unexpected error:", err);
     return NextResponse.json(

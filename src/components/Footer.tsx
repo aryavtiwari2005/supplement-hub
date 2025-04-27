@@ -1,6 +1,6 @@
 "use client";
 
-import React, { useState } from "react";
+import React from "react";
 import Link from "next/link";
 import {
   FaFacebook,
@@ -16,31 +16,6 @@ import { selectTheme } from "@/redux/themeSlice";
 
 const Footer: React.FC = () => {
   const theme = useSelector(selectTheme);
-  const [formData, setFormData] = useState({
-    name: "",
-    email: "",
-    message: "",
-  });
-
-  const handleInputChange = (
-    e: React.ChangeEvent<HTMLInputElement | HTMLTextAreaElement>
-  ) => {
-    const { name, value } = e.target;
-    setFormData((prev) => ({
-      ...prev,
-      [name]: value,
-    }));
-  };
-
-  const handleSubmit = (e: React.FormEvent) => {
-    e.preventDefault();
-    console.log("Form Submitted", formData);
-    setFormData({
-      name: "",
-      email: "",
-      message: "",
-    });
-  };
 
   return (
     <footer
@@ -84,13 +59,13 @@ const Footer: React.FC = () => {
                   key={index}
                   href="#"
                   className={`
-                  text-2xl transition
-                  ${
-                    theme === "light"
-                      ? "text-yellow-600 hover:text-yellow-800"
-                      : "text-blue-500 hover:text-blue-300"
-                  }
-                `}
+                    text-2xl transition
+                    ${
+                      theme === "light"
+                        ? "text-yellow-600 hover:text-yellow-800"
+                        : "text-blue-500 hover:text-blue-300"
+                    }
+                  `}
                 >
                   <Icon />
                 </Link>
@@ -113,9 +88,11 @@ const Footer: React.FC = () => {
             {[
               { href: "/", label: "Home" },
               { href: "/products", label: "Products" },
-              { href: "/about", label: "About Us" },
-              { href: "/contact", label: "Contact" },
+              { href: "/blogs", label: "Blogs" },
+              { href: "/fitness-consultancy", label: "Fitness Consultancy" },
               { href: "/privacy", label: "Privacy Policy" },
+              { href: "/terms", label: "Terms of Service" },
+              { href: "/refund", label: "Refund Policy" },
             ].map((link, index) => (
               <Link
                 key={index}
@@ -135,7 +112,7 @@ const Footer: React.FC = () => {
           </div>
         </div>
 
-        {/* Contact Form */}
+        {/* About Us (Static Content) */}
         <div>
           <h3
             className={`
@@ -143,60 +120,28 @@ const Footer: React.FC = () => {
               ${theme === "light" ? "text-yellow-600" : "text-blue-400"}
             `}
           >
-            Contact Us
+            About Us
           </h3>
-          <form onSubmit={handleSubmit} className="space-y-4">
-            {["name", "email"].map((field) => (
-              <input
-                key={field}
-                type={field === "email" ? "email" : "text"}
-                name={field}
-                placeholder={`Your ${
-                  field.charAt(0).toUpperCase() + field.slice(1)
-                }`}
-                value={formData[field as keyof typeof formData]}
-                onChange={handleInputChange}
-                required
-                className={`
-                  w-full p-3 rounded-lg focus:outline-none focus:ring-2
-                  ${
-                    theme === "light"
-                      ? "bg-gray-100 text-black focus:ring-yellow-500"
-                      : "bg-gray-800 text-white focus:ring-blue-500"
-                  }
-                `}
-              />
-            ))}
-            <textarea
-              name="message"
-              placeholder="Your Message"
-              value={formData.message}
-              onChange={handleInputChange}
-              required
-              rows={4}
-              className={`
-                w-full p-3 rounded-lg focus:outline-none focus:ring-2
-                ${
-                  theme === "light"
-                    ? "bg-gray-100 text-black focus:ring-yellow-500"
-                    : "bg-gray-800 text-white focus:ring-blue-500"
-                }
-              `}
-            />
-            <button
-              type="submit"
-              className={`
-                w-full py-3 rounded-lg transition
-                ${
-                  theme === "light"
-                    ? "bg-yellow-500 text-black hover:bg-yellow-600"
-                    : "bg-blue-600 text-white hover:bg-blue-700"
-                }
-              `}
-            >
-              Send Message
-            </button>
-          </form>
+          <p
+            className={`
+              mb-6
+              ${theme === "light" ? "text-gray-700" : "text-gray-300"}
+            `}
+          >
+            At 1Scoop Protein, we are passionate about helping you achieve your
+            fitness goals. Our premium supplements are crafted with care to
+            support your journey to a healthier, stronger you.
+          </p>
+          <p
+            className={`
+              ${theme === "light" ? "text-gray-700" : "text-gray-300"}
+            `}
+          >
+            <strong>Store Hours:</strong> Mon-Sat, 9 AM - 9 PM
+            <br />
+            <strong>Location:</strong> Shop No-24, Ground Floor Galleria Market,
+            Gaur City 2, Greater Noida (W)
+          </p>
         </div>
       </div>
 
@@ -213,8 +158,8 @@ const Footer: React.FC = () => {
       >
         <div className="flex flex-col md:flex-row justify-center items-center space-y-4 md:space-y-0 md:space-x-8 mb-4">
           {[
-            { Icon: FaEnvelope, text: "support@supplementhub.com" },
-            { Icon: FaPhoneAlt, text: "(555) 123-4567" },
+            { Icon: FaEnvelope, text: "supplementhub.contact@gmail.com" },
+            { Icon: FaPhoneAlt, text: "+91 8860112296" },
             {
               Icon: FaMapMarkerAlt,
               text: "Shop No-24, Ground Floor Galleria Market, Gaur City 2, Greater Noida (W)",
@@ -235,9 +180,9 @@ const Footer: React.FC = () => {
 
         <p
           className={`
-                      text-center mt-4
-                      ${theme === "light" ? "text-gray-500" : "text-gray-500"}
-                    `}
+            text-center mt-4
+            ${theme === "light" ? "text-gray-500" : "text-gray-500"}
+          `}
         >
           © {new Date().getFullYear()} Supplement Hub. All Rights Reserved.
         </p>

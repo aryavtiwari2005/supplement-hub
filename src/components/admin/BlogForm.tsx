@@ -34,9 +34,9 @@ export default function BlogForm({
       variants={formVariants}
       initial="hidden"
       animate="visible"
-      className="fixed inset-0 bg-black bg-opacity-50 flex items-center justify-center z-50"
+      className="fixed inset-0 bg-black bg-opacity-50 flex items-center justify-center z-50 overflow-y-auto"
     >
-      <div className="bg-white p-6 rounded-lg shadow-lg w-full max-w-2xl">
+      <div className="bg-white p-6 rounded-lg shadow-lg w-full max-w-2xl my-4 max-h-[90vh] overflow-y-auto">
         <h2 className="text-xl font-semibold mb-4">
           {isEditing ? "Edit Blog" : "Add Blog"}
         </h2>
@@ -85,12 +85,14 @@ export default function BlogForm({
           </div>
           <div>
             <label className="block text-gray-700">Content</label>
-            <RichTextEditor
-              content={blogForm.content}
-              onChange={(content: string) =>
-                setBlogForm({ ...blogForm, content })
-              }
-            />
+            <div className="max-h-80 overflow-y-auto">
+              <RichTextEditor
+                content={blogForm.content}
+                onChange={(content: string) =>
+                  setBlogForm({ ...blogForm, content })
+                }
+              />
+            </div>
           </div>
           <div className="flex justify-end space-x-4">
             <button

@@ -1,7 +1,7 @@
 "use client";
 
 import { motion } from "framer-motion";
-import { useState, useEffect } from "react";
+import { useState, useEffect, useRef } from "react";
 import { ChevronRight, ChevronLeft, ShoppingCart } from "lucide-react";
 import { useSelector } from "react-redux";
 import { selectTheme } from "@/redux/themeSlice";
@@ -47,6 +47,8 @@ export default function HeroSection() {
   const [banners, setBanners] = useState<string[]>([]);
   const [summerProducts, setSummerProducts] = useState<Product[]>([]);
   const [brandProducts, setBrandProducts] = useState<Product[]>([]);
+  const touchStartX = useRef<number | null>(null);
+  const touchEndX = useRef<number | null>(null);
 
   useEffect(() => {
     const fetchData = async () => {
@@ -130,11 +132,39 @@ export default function HeroSection() {
     setCurrentSlide((prev) => (prev - 1 + banners.length) % banners.length);
   };
 
+  // Swipe navigation handlers
+  const handleTouchStart = (e: React.TouchEvent<HTMLDivElement>) => {
+    touchStartX.current = e.touches[0].clientX;
+  };
+
+  const handleTouchMove = (e: React.TouchEvent<HTMLDivElement>) => {
+    touchEndX.current = e.touches[0].clientX;
+  };
+
+  const handleTouchEnd = () => {
+    if (touchStartX.current !== null && touchEndX.current !== null) {
+      const swipeDistance = touchStartX.current - touchEndX.current;
+      const swipeThreshold = 50; // Minimum swipe distance in pixels
+      if (swipeDistance > swipeThreshold) {
+        nextSlide(); // Swipe left -> next slide
+      } else if (swipeDistance < -swipeThreshold) {
+        prevSlide(); // Swipe right -> previous slide
+      }
+    }
+    touchStartX.current = null;
+    touchEndX.current = null;
+  };
+
   return (
     <div className="flex flex-col w-full">
       <div className="mt-16 sm:mt-20">
-        <div className="relative mx-auto max-w-6xl rounded-lg overflow-hidden">
-          <div className="relative w-full" style={{ paddingTop: "40%" }}>
+        <div
+          className="relative mx-auto w-[90vw] sm:max-w-6xl rounded-lg overflow-hidden"
+          onTouchStart={handleTouchStart}
+          onTouchMove={handleTouchMove}
+          onTouchEnd={handleTouchEnd}
+        >
+          <div className="relative w-full" style={{ paddingTop: "56.25%" }}>
             {banners.map((image, index) => (
               <motion.div
                 key={index}
@@ -147,7 +177,7 @@ export default function HeroSection() {
                 <img
                   src={image}
                   alt={`Banner ${index + 1}`}
-                  className="w-full h-full object-contain"
+                  className="w-full h-full object-cover"
                 />
               </motion.div>
             ))}
@@ -155,19 +185,19 @@ export default function HeroSection() {
 
           <button
             onClick={prevSlide}
-            className="absolute left-2 top-1/2 -translate-y-1/2 z-10 bg-black/30 hover:bg-black/40 text-white p-1 rounded-full"
+            className="hidden sm:block absolute left-2 top-1/2 -translate-y-1/2 z-10 bg-black/30 hover:bg-black/40 text-white p-1 rounded-full"
           >
             <ChevronLeft className="h-5 w-5" />
           </button>
 
           <button
             onClick={nextSlide}
-            className="absolute right-2 top-1/2 -translate-y-1/2 z-10 bg-black/30 hover:bg-black/40 text-white p-1 rounded-full"
+            className="hidden sm:block absolute right-2 top-1/2 -translate-y-1/2 z-10 bg-black/30 hover:bg-black/40 text-white p-1 rounded-full"
           >
             <ChevronRight className="h-5 w-5" />
           </button>
 
-          <div className="absolute bottom-3 left-0 right-0 z-10 flex justify-center space-x-1.5">
+          <div className="hidden sm:flex absolute bottom-3 left-0 right-0 z-10 justify-center space-x-1.5">
             {banners.map((_, index) => (
               <button
                 key={index}
