@@ -7,6 +7,7 @@ import WhySupplementHub from "@/components/WhySupplementHub";
 import { PRODUCT_CATEGORIES } from "@/utils/constants";
 import CalorieCalculator from "@/components/home/CalorieCalculator";
 import { ThemeProvider } from "@/components/ThemeProvider";
+import ChatWithExpert from "@/components/home/ChatWithExpert";
 
 export default function SupplementHubHomePage() {
   return (
@@ -17,6 +18,7 @@ export default function SupplementHubHomePage() {
         <CalorieCalculator />
         <BrandShowcase />
         <WhySupplementHub />
+        <ChatWithExpert />
       </main>
     </ThemeProvider>
   );

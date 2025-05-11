@@ -2,7 +2,7 @@
 
 import { useState, useEffect } from "react";
 import { createClient } from "@supabase/supabase-js";
-import { Flame, Tag, Ticket, Book, Zap } from "lucide-react";
+import { Flame, Tag, Ticket, Book, Zap, MapPin } from "lucide-react";
 import LogoSection from "./header/LogoSection";
 import DesktopNav from "./header/DesktopNav";
 import CartDropdown from "./header/CartDropdown";
@@ -76,7 +76,6 @@ export default function Header() {
 
     const fetchBestSellers = async () => {
       try {
-        // Fetch best sellers
         const { data: bestSellersData, error: bestSellersError } =
           await supabase
             .from("best_seller_products")
@@ -100,9 +99,7 @@ export default function Header() {
         const productIds = bestSellersData.map(
           (item: { product_id: number }) => item.product_id
         );
-        console.log("Fetched product IDs:", productIds);
 
-        // Fetch products with categories and subcategories
         const { data: productsData, error: productsError } = await supabase
           .from("products")
           .select("id, name, category, subcategory");
@@ -118,12 +115,9 @@ export default function Header() {
           return;
         }
 
-        console.log("Fetched products data:", productsData);
-
-        // Group products by category, excluding Uncategorized and handling Unnamed
         const categoryMap: { [key: string]: SubMenuItem[] } = {};
-        const categoryProductCount: { [key: string]: number } = {}; // Track product count per category
-        const categoryUnnamedCount: { [key: string]: number } = {}; // Track unnamed subcategories per category
+        const categoryProductCount: { [key: string]: number } = {};
+        const categoryUnnamedCount: { [key: string]: number } = {};
 
         productsData.forEach(
           (product: {
@@ -135,12 +129,10 @@ export default function Header() {
             const category = product.category?.trim();
             const subcategoryName = product.subcategory?.trim();
 
-            // Skip if category is missing or empty (would be "Uncategorized")
             if (!category) {
               return;
             }
 
-            // Initialize category in maps
             if (!categoryMap[category]) {
               categoryMap[category] = [];
               categoryProductCount[category] = 0;
@@ -149,13 +141,11 @@ export default function Header() {
 
             categoryProductCount[category] += 1;
 
-            // Skip if subcategory is missing or empty (would be "Unnamed")
             if (!subcategoryName) {
               categoryUnnamedCount[category] += 1;
               return;
             }
 
-            // Avoid duplicate subcategories
             const existingSubcategory = categoryMap[category].find(
               (item) => item.name === subcategoryName
             );
@@ -173,7 +163,6 @@ export default function Header() {
           }
         );
 
-        // Filter out categories with a single product that's Unnamed
         const filteredCategoryMap: { [key: string]: SubMenuItem[] } = {};
         Object.entries(categoryMap).forEach(([category, subItems]) => {
           if (
@@ -181,18 +170,13 @@ export default function Header() {
             categoryUnnamedCount[category] === 1 &&
             subItems.length === 0
           ) {
-            // Skip categories with one product that's Unnamed
             return;
           }
           if (subItems.length > 0) {
-            // Only include categories with valid subcategories
             filteredCategoryMap[category] = subItems;
           }
         });
 
-        console.log("Filtered category map:", filteredCategoryMap);
-
-        // Convert grouped data into DropdownMenuItem array
         const bestSellerMenuItems: DropdownMenuItem[] = Object.entries(
           filteredCategoryMap
         ).map(([category, subItems]) => ({
@@ -200,7 +184,6 @@ export default function Header() {
           subItems,
         }));
 
-        console.log("Best seller menu items:", bestSellerMenuItems);
         setBestSellerItems(bestSellerMenuItems);
       } catch (error) {
         console.error("Unexpected error in fetchBestSellers:", error);
@@ -260,38 +243,99 @@ export default function Header() {
   };
 
   return (
-    <header
-      className={`${theme === "light" ? "bg-white" : "bg-black"} ${
-        theme === "light" ? "border-gray-200" : "border-gray-800"
-      } border-b shadow-md sticky top-0 z-50`}
-    >
-      <div className="container mx-auto flex justify-between items-center px-4 sm:px-6 lg:px-8 py-3 sm:py-4">
-        <LogoSection />
-        <DesktopNav dropdownMenus={DROPDOWN_MENUS} />
-        <div className="flex items-center space-x-2 sm:space-x-4">
-          <CartDropdown />
-          <ProfileDropdown />
-          <button
-            className={`md:hidden p-2 rounded-md ${
-              theme === "light"
-                ? "text-black hover:bg-gray-100"
-                : "text-white hover:bg-gray-800"
-            }`}
-            onClick={() => setIsMobileMenuOpen(!isMobileMenuOpen)}
-          >
-            {isMobileMenuOpen ? (
-              <span className="text-lg font-bold">X</span>
-            ) : (
-              <span className="text-lg font-bold">☰</span>
-            )}
-          </button>
+    <div className="sticky top-0 z-50">
+      {/* Blue Bar with Marquee on Mobile */}
+      <div
+        className={`
+          bg-blue-900 text-white text-center text-xs sm:text-sm py-2
+          ${theme === "light" ? "bg-opacity-90" : "bg-opacity-80"}
+          overflow-hidden
+        `}
+      >
+        <div className="sm:hidden">
+          <div className="animate-marquee whitespace-nowrap">
+            100% Authentic Products | Extra 3% OFF on UPI | Sourced directly
+            from Brands | Up to 50% OFF *
+          </div>
+        </div>
+        <div className="hidden sm:block">
+          100% Authentic Products | Extra 3% OFF on UPI | Sourced directly from
+          Brands | Up to 50% OFF *
         </div>
       </div>
-      <MobileNav
-        dropdownMenus={DROPDOWN_MENUS}
-        isOpen={isMobileMenuOpen}
-        toggleMenu={() => setIsMobileMenuOpen(!isMobileMenuOpen)}
-      />
-    </header>
+
+      {/* Main Header */}
+      <header
+        className={`${theme === "light" ? "bg-white" : "bg-black"} ${
+          theme === "light" ? "border-gray-200" : "border-gray-800"
+        } border-b shadow-md`}
+      >
+        <div className="container mx-auto flex flex-col sm:flex-row justify-between items-center px-4 sm:px-6 lg:px-8 py-3 sm:py-4 space-y-2 sm:space-y-0">
+          <div className="flex flex-col sm:flex-row sm:items-center w-full sm:w-auto space-y-2 sm:space-y-0 sm:space-x-3">
+            <div className="flex items-center justify-between w-full sm:w-auto">
+              <LogoSection />
+              <div className="flex items-center space-x-2 sm:hidden">
+                <CartDropdown />
+                <ProfileDropdown />
+                <button
+                  className={`p-2 rounded-md ${
+                    theme === "light"
+                      ? "text-black hover:bg-gray-100"
+                      : "text-white hover:bg-gray-800"
+                  }`}
+                  onClick={() => setIsMobileMenuOpen(!isMobileMenuOpen)}
+                >
+                  {isMobileMenuOpen ? (
+                    <span className="text-lg font-bold">X</span>
+                  ) : (
+                    <span className="text-lg font-bold">☰</span>
+                  )}
+                </button>
+              </div>
+            </div>
+            <div className="flex items-center justify-between w-full sm:w-auto">
+              <div className="flex items-center space-x-2">
+                <MapPin className="h-4 w-4 text-gray-500" />
+                <span className="text-sm text-gray-600">201303, Noida</span>
+              </div>
+              <div
+                className={`
+                  flex items-center bg-purple-100 text-purple-800 text-xs sm:text-sm px-3 py-1 rounded-full
+                  ${theme === "light" ? "bg-opacity-80" : "bg-opacity-60"}
+                `}
+              >
+                <Zap className="h-4 w-4 mr-1" />
+                <span>Get it tomorrow*</span>
+              </div>
+            </div>
+          </div>
+          <div className="hidden sm:flex items-center space-x-2 sm:space-x-4">
+            <DesktopNav dropdownMenus={DROPDOWN_MENUS} />
+            <CartDropdown />
+            <ProfileDropdown />
+          </div>
+        </div>
+        <MobileNav
+          dropdownMenus={DROPDOWN_MENUS}
+          isOpen={isMobileMenuOpen}
+          toggleMenu={() => setIsMobileMenuOpen(!isMobileMenuOpen)}
+        />
+      </header>
+
+      {/* Inline CSS for Marquee Animation */}
+      <style jsx>{`
+        @keyframes marquee {
+          0% {
+            transform: translateX(100%);
+          }
+          100% {
+            transform: translateX(-100%);
+          }
+        }
+        .animate-marquee {
+          animation: marquee 15s linear infinite;
+        }
+      `}</style>
+    </div>
   );
 }

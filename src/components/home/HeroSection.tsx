@@ -8,6 +8,7 @@ import { selectTheme } from "@/redux/themeSlice";
 import { supabase } from "@/utils/supabase";
 import Link from "next/link";
 
+// Interfaces remain unchanged
 interface SummerHealthProduct {
   id: number;
   product_id: number;
@@ -102,15 +103,11 @@ export default function HeroSection() {
         const brandNames = brandData.map(
           (b: { brand_name: string }) => b.brand_name
         );
-        console.log("Fetched brand names:", brandNames);
-
-        // Alternative using raw SQL for better control
         const { data: productsDataRaw, error: rawError } = await supabase.rpc(
           "get_one_product_per_brand",
           { brand_names: brandNames }
         );
         if (rawError) console.error("Error fetching brand products:", rawError);
-        console.log("Brand products data:", productsDataRaw);
         setBrandProducts((productsDataRaw as Product[]) || []);
       }
     };
@@ -144,11 +141,11 @@ export default function HeroSection() {
   const handleTouchEnd = () => {
     if (touchStartX.current !== null && touchEndX.current !== null) {
       const swipeDistance = touchStartX.current - touchEndX.current;
-      const swipeThreshold = 50; // Minimum swipe distance in pixels
+      const swipeThreshold = 50;
       if (swipeDistance > swipeThreshold) {
-        nextSlide(); // Swipe left -> next slide
+        nextSlide();
       } else if (swipeDistance < -swipeThreshold) {
-        prevSlide(); // Swipe right -> previous slide
+        prevSlide();
       }
     }
     touchStartX.current = null;
@@ -159,12 +156,15 @@ export default function HeroSection() {
     <div className="flex flex-col w-full">
       <div className="mt-16 sm:mt-20">
         <div
-          className="relative mx-auto w-[90vw] sm:max-w-6xl rounded-lg overflow-hidden"
+          className="relative mx-auto w-[95vw] sm:max-w-[1440px] rounded-lg overflow-hidden"
           onTouchStart={handleTouchStart}
           onTouchMove={handleTouchMove}
           onTouchEnd={handleTouchEnd}
         >
-          <div className="relative w-full" style={{ paddingTop: "56.25%" }}>
+          <div
+            className="relative w-full"
+            style={{ aspectRatio: "1440 / 360" }} // Enforce 1440x360 aspect ratio
+          >
             {banners.map((image, index) => (
               <motion.div
                 key={index}
@@ -174,30 +174,39 @@ export default function HeroSection() {
                 className="absolute inset-0"
                 style={{ zIndex: currentSlide === index ? 1 : 0 }}
               >
-                <img
-                  src={image}
-                  alt={`Banner ${index + 1}`}
-                  className="w-full h-full object-cover"
-                />
+                <picture>
+                  <source
+                    srcSet={`${image}?w=768&h=192`} // Mobile-optimized image
+                    media="(max-width: 640px)"
+                  />
+                  <img
+                    src={`${image}?w=1440&h=360`} // Desktop image
+                    alt={`Banner ${index + 1}`}
+                    className="w-full h-full object-cover"
+                    loading={index === 0 ? "eager" : "lazy"} // Optimize loading
+                  />
+                </picture>
               </motion.div>
             ))}
           </div>
 
           <button
             onClick={prevSlide}
-            className="hidden sm:block absolute left-2 top-1/2 -translate-y-1/2 z-10 bg-black/30 hover:bg-black/40 text-white p-1 rounded-full"
+            className="absolute left-2 top-1/2 -translate-y-1/2 z-10 bg-black/30 hover:bg-black/40 text-white p-1 rounded-full sm:block"
+            aria-label="Previous slide"
           >
             <ChevronLeft className="h-5 w-5" />
           </button>
 
           <button
             onClick={nextSlide}
-            className="hidden sm:block absolute right-2 top-1/2 -translate-y-1/2 z-10 bg-black/30 hover:bg-black/40 text-white p-1 rounded-full"
+            className="absolute right-2 top-1/2 -translate-y-1/2 z-10 bg-black/30 hover:bg-black/40 text-white p-1 rounded-full sm:block"
+            aria-label="Next slide"
           >
             <ChevronRight className="h-5 w-5" />
           </button>
 
-          <div className="hidden sm:flex absolute bottom-3 left-0 right-0 z-10 justify-center space-x-1.5">
+          <div className="flex absolute bottom-3 left-0 right-0 z-10 justify-center space-x-1.5">
             {banners.map((_, index) => (
               <button
                 key={index}
@@ -207,6 +216,7 @@ export default function HeroSection() {
                     ? "bg-white"
                     : "bg-white/30 hover:bg-white/50"
                 }`}
+                aria-label={`Go to slide ${index + 1}`}
               />
             ))}
           </div>
@@ -214,7 +224,7 @@ export default function HeroSection() {
       </div>
 
       <div
-        className={`w-full py-10 px-4 ${
+        className={`w-full py-2 px-4 ${
           theme === "light" ? "bg-gray-50" : "bg-gray-900"
         }`}
       >
@@ -278,7 +288,7 @@ export default function HeroSection() {
                           className="w-full h-full object-contain"
                         />
                       </div>
-                      <p className="text-center font-medium text-sm">
+                      <p className="text-center这种 font-medium text-sm">
                         {product.name}
                       </p>
                     </div>
