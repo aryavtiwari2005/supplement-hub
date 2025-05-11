@@ -270,11 +270,36 @@ export default function Header() {
           theme === "light" ? "border-gray-200" : "border-gray-800"
         } border-b shadow-md`}
       >
-        <div className="container mx-auto flex flex-col sm:flex-row justify-between items-center px-4 sm:px-6 lg:px-8 py-3 sm:py-4 space-y-2 sm:space-y-0">
-          <div className="flex flex-col sm:flex-row sm:items-center w-full sm:w-auto space-y-2 sm:space-y-0 sm:space-x-3">
-            <div className="flex items-center justify-between w-full sm:w-auto">
+        <div className="container mx-auto px-4 sm:px-6 lg:px-8 py-3 sm:py-4">
+          {/* Desktop Layout */}
+          <div className="hidden sm:flex justify-between items-center">
+            <div className="flex items-center space-x-4">
               <LogoSection />
-              <div className="flex items-center space-x-2 sm:hidden">
+              <div
+                className={`
+                  flex flex-col items-start bg-purple-100 text-purple-800 text-xs sm:text-sm px-3 py-2 rounded-lg
+                  ${theme === "light" ? "bg-opacity-80" : "bg-opacity-60"}
+                `}
+              >
+                <div className="flex items-center">
+                  <Zap className="h-4 w-4 mr-1" />
+                  <span>Get it tomorrow</span>
+                </div>
+                <span className="text-xs">For Noida Pincodes</span>
+              </div>
+            </div>
+            <div className="flex items-center space-x-4">
+              <DesktopNav dropdownMenus={DROPDOWN_MENUS} />
+              <CartDropdown />
+              <ProfileDropdown />
+            </div>
+          </div>
+
+          {/* Mobile Layout */}
+          <div className="sm:hidden flex flex-col space-y-3">
+            <div className="flex justify-between items-center">
+              <LogoSection />
+              <div className="flex items-center space-x-2">
                 <CartDropdown />
                 <ProfileDropdown />
                 <button
@@ -293,26 +318,24 @@ export default function Header() {
                 </button>
               </div>
             </div>
-            <div className="flex items-center justify-between w-full sm:w-auto">
+            <div className="flex justify-between space-y-2">
               <div className="flex items-center space-x-2">
                 <MapPin className="h-4 w-4 text-gray-500" />
                 <span className="text-sm text-gray-600">201303, Noida</span>
               </div>
               <div
                 className={`
-                  flex items-center bg-purple-100 text-purple-800 text-xs sm:text-sm px-3 py-1 rounded-full
+                  flex flex-col items-start bg-purple-100 text-purple-800 text-xs px-3 py-2 rounded-lg w-fit
                   ${theme === "light" ? "bg-opacity-80" : "bg-opacity-60"}
                 `}
               >
-                <Zap className="h-4 w-4 mr-1" />
-                <span>Get it tomorrow*</span>
+                <div className="flex items-center">
+                  <Zap className="h-4 w-4 mr-1" />
+                  <span>Get it tomorrow</span>
+                </div>
+                <span className="text-xs">For Noida Pincodes</span>
               </div>
             </div>
-          </div>
-          <div className="hidden sm:flex items-center space-x-2 sm:space-x-4">
-            <DesktopNav dropdownMenus={DROPDOWN_MENUS} />
-            <CartDropdown />
-            <ProfileDropdown />
           </div>
         </div>
         <MobileNav
