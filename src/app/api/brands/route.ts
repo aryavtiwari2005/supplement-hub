@@ -27,7 +27,7 @@ export async function GET() {
       .from("featured_brands")
       .select("brand_name")
       .order("added_at", { ascending: false }) // Most recent first
-      .limit(5)) as { data: FeaturedBrand[] | null; error: any };
+    ) as { data: FeaturedBrand[] | null; error: any };
 
     if (error) {
       console.error("Error fetching brands:", error.message);
