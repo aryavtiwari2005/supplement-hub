@@ -21,10 +21,9 @@ const Footer: React.FC = () => {
     <footer
       className={`
         py-16
-        ${
-          theme === "light"
-            ? "bg-gradient-to-br from-yellow-50 to-white"
-            : "bg-gradient-to-br from-gray-900 to-black"
+        ${theme === "light"
+          ? "bg-gradient-to-br from-yellow-50 to-white"
+          : "bg-gradient-to-br from-gray-900 to-black"
         }
         ${theme === "light" ? "text-black" : "text-white"}
       `}
@@ -60,10 +59,9 @@ const Footer: React.FC = () => {
                   href="#"
                   className={`
                     text-2xl transition
-                    ${
-                      theme === "light"
-                        ? "text-yellow-600 hover:text-yellow-800"
-                        : "text-blue-500 hover:text-blue-300"
+                    ${theme === "light"
+                      ? "text-yellow-600 hover:text-yellow-800"
+                      : "text-blue-500 hover:text-blue-300"
                     }
                   `}
                 >
@@ -91,18 +89,18 @@ const Footer: React.FC = () => {
               { href: "/blogs", label: "Blogs" },
               { href: "/fitness-consultancy", label: "Fitness Consultancy" },
               { href: "/privacy", label: "Privacy Policy" },
-              { href: "/terms", label: "Terms of Service" },
+              { href: "/terms&conditions", label: "Terms and Conditions" },
               { href: "/refund", label: "Refund Policy" },
+              { href: "/shipping-policy", label: "Shipping Policy" },
             ].map((link, index) => (
               <Link
                 key={index}
                 href={link.href}
                 className={`
                   block transition
-                  ${
-                    theme === "light"
-                      ? "text-gray-700 hover:text-yellow-700"
-                      : "text-gray-300 hover:text-blue-300"
+                  ${theme === "light"
+                    ? "text-gray-700 hover:text-yellow-700"
+                    : "text-gray-300 hover:text-blue-300"
                   }
                 `}
               >
@@ -149,10 +147,9 @@ const Footer: React.FC = () => {
       <div
         className={`
           container mx-auto px-4 mt-12 pt-6
-          ${
-            theme === "light"
-              ? "border-t border-gray-200"
-              : "border-t border-gray-800"
+          ${theme === "light"
+            ? "border-t border-gray-200"
+            : "border-t border-gray-800"
           }
         `}
       >

@@ -37,22 +37,19 @@ export default function TermsAndConditionsPage() {
       initial="initial"
       animate="animate"
       exit="exit"
-      className={`min-h-screen ${
-        theme === "light" ? "bg-gray-50" : "bg-gray-900"
-      }`}
+      className={`min-h-screen ${theme === "light" ? "bg-gray-50" : "bg-gray-900"
+        }`}
     >
       <div className="container mx-auto px-2 sm:px-4 py-8 sm:py-12">
         <motion.h1
           variants={titleVariants}
-          className={`text-3xl sm:text-4xl md:text-5xl font-extrabold text-center mb-4 sm:mb-6 ${
-            theme === "light" ? "text-gray-800" : "text-white"
-          }`}
+          className={`text-3xl sm:text-4xl md:text-5xl font-extrabold text-center mb-4 sm:mb-6 ${theme === "light" ? "text-gray-800" : "text-white"
+            }`}
         >
           Terms{" "}
           <span
-            className={`${
-              theme === "light" ? "text-yellow-600" : "text-yellow-400"
-            }`}
+            className={`${theme === "light" ? "text-yellow-600" : "text-yellow-400"
+              }`}
           >
             & Conditions
           </span>
@@ -60,39 +57,34 @@ export default function TermsAndConditionsPage() {
         <motion.p
           initial={{ opacity: 0 }}
           animate={{ opacity: 1, transition: { duration: 0.6, delay: 0.3 } }}
-          className={`text-center text-sm sm:text-base md:text-lg mb-8 sm:mb-12 max-w-3xl mx-auto ${
-            theme === "light" ? "text-gray-600" : "text-gray-300"
-          }`}
+          className={`text-center text-sm sm:text-base md:text-lg mb-8 sm:mb-12 max-w-3xl mx-auto ${theme === "light" ? "text-gray-600" : "text-gray-300"
+            }`}
         >
           Last updated: April 27, 2025
         </motion.p>
 
         <motion.div
           variants={dividerVariants}
-          className={`h-1 mx-auto mb-8 sm:mb-12 ${
-            theme === "light" ? "bg-yellow-500" : "bg-yellow-400"
-          } rounded-full max-w-xs sm:max-w-md`}
+          className={`h-1 mx-auto mb-8 sm:mb-12 ${theme === "light" ? "bg-yellow-500" : "bg-yellow-400"
+            } rounded-full max-w-xs sm:max-w-md`}
         />
 
         <section className="max-w-4xl mx-auto">
           <h2
-            className={`text-2xl sm:text-3xl font-bold mb-4 ${
-              theme === "light" ? "text-gray-800" : "text-white"
-            }`}
+            className={`text-2xl sm:text-3xl font-bold mb-4 ${theme === "light" ? "text-gray-800" : "text-white"
+              }`}
           >
             Welcome to 1Scoop Protein!
           </h2>
           <p
-            className={`text-sm sm:text-base mb-6 ${
-              theme === "light" ? "text-gray-600" : "text-gray-300"
-            }`}
+            className={`text-sm sm:text-base mb-6 ${theme === "light" ? "text-gray-600" : "text-gray-300"
+              }`}
           >
             By accessing or using our website,{" "}
             <a
               href="https://www.1scoopprotein.com"
-              className={`${
-                theme === "light" ? "text-yellow-600" : "text-yellow-400"
-              } hover:underline`}
+              className={`${theme === "light" ? "text-yellow-600" : "text-yellow-400"
+                } hover:underline`}
             >
               www.1scoopprotein.com
             </a>{" "}
@@ -101,16 +93,14 @@ export default function TermsAndConditionsPage() {
           </p>
 
           <h2
-            className={`text-2xl sm:text-3xl font-bold mb-4 mt-8 ${
-              theme === "light" ? "text-gray-800" : "text-white"
-            }`}
+            className={`text-2xl sm:text-3xl font-bold mb-4 mt-8 ${theme === "light" ? "text-gray-800" : "text-white"
+              }`}
           >
             1. Use of the Website
           </h2>
           <p
-            className={`text-sm sm:text-base mb-6 ${
-              theme === "light" ? "text-gray-600" : "text-gray-300"
-            }`}
+            className={`text-sm sm:text-base mb-6 ${theme === "light" ? "text-gray-600" : "text-gray-300"
+              }`}
           >
             You agree to use this Site for lawful purposes only. You must not
             misuse the Site by introducing viruses, trojans, or other harmful
@@ -118,16 +108,14 @@ export default function TermsAndConditionsPage() {
           </p>
 
           <h2
-            className={`text-2xl sm:text-3xl font-bold mb-4 mt-8 ${
-              theme === "light" ? "text-gray-800" : "text-white"
-            }`}
+            className={`text-2xl sm:text-3xl font-bold mb-4 mt-8 ${theme === "light" ? "text-gray-800" : "text-white"
+              }`}
           >
             2. Intellectual Property
           </h2>
           <p
-            className={`text-sm sm:text-base mb-6 ${
-              theme === "light" ? "text-gray-600" : "text-gray-300"
-            }`}
+            className={`text-sm sm:text-base mb-6 ${theme === "light" ? "text-gray-600" : "text-gray-300"
+              }`}
           >
             All content on this Site — including logos, product descriptions,
             images, graphics, and designs — is the property of 1Scoop Protein
@@ -136,16 +124,14 @@ export default function TermsAndConditionsPage() {
           </p>
 
           <h2
-            className={`text-2xl sm:text-3xl font-bold mb-4 mt-8 ${
-              theme === "light" ? "text-gray-800" : "text-white"
-            }`}
+            className={`text-2xl sm:text-3xl font-bold mb-4 mt-8 ${theme === "light" ? "text-gray-800" : "text-white"
+              }`}
           >
             3. Product Information
           </h2>
           <p
-            className={`text-sm sm:text-base mb-6 ${
-              theme === "light" ? "text-gray-600" : "text-gray-300"
-            }`}
+            className={`text-sm sm:text-base mb-6 ${theme === "light" ? "text-gray-600" : "text-gray-300"
+              }`}
           >
             We strive to display accurate information, but we do not guarantee
             that product descriptions, prices, or other content is error-free.
@@ -153,25 +139,22 @@ export default function TermsAndConditionsPage() {
           </p>
 
           <h2
-            className={`text-2xl sm:text-3xl font-bold mb-4 mt-8 ${
-              theme === "light" ? "text-gray-800" : "text-white"
-            }`}
+            className={`text-2xl sm:text-3xl font-bold mb-4 mt-8 ${theme === "light" ? "text-gray-800" : "text-white"
+              }`}
           >
             4. Orders and Payments
           </h2>
           <p
-            className={`text-sm sm:text-base mb-4 ${
-              theme === "light" ? "text-gray-600" : "text-gray-300"
-            }`}
+            className={`text-sm sm:text-base mb-4 ${theme === "light" ? "text-gray-600" : "text-gray-300"
+              }`}
           >
             All orders placed are subject to acceptance and availability. We
             reserve the right to cancel any order at our discretion, including
             orders that appear to be fraudulent or violate our policies.
           </p>
           <p
-            className={`text-sm sm:text-base mb-6 ${
-              theme === "light" ? "text-gray-600" : "text-gray-300"
-            }`}
+            className={`text-sm sm:text-base mb-6 ${theme === "light" ? "text-gray-600" : "text-gray-300"
+              }`}
           >
             Payments must be made through the payment methods available on the
             Site. By providing payment information, you represent and warrant
@@ -179,16 +162,14 @@ export default function TermsAndConditionsPage() {
           </p>
 
           <h2
-            className={`text-2xl sm:text-3xl font-bold mb-4 mt-8 ${
-              theme === "light" ? "text-gray-800" : "text-white"
-            }`}
+            className={`text-2xl sm:text-3xl font-bold mb-4 mt-8 ${theme === "light" ? "text-gray-800" : "text-white"
+              }`}
           >
             5. Shipping and Delivery
           </h2>
           <p
-            className={`text-sm sm:text-base mb-6 ${
-              theme === "light" ? "text-gray-600" : "text-gray-300"
-            }`}
+            className={`text-sm sm:text-base mb-6 ${theme === "light" ? "text-gray-600" : "text-gray-300"
+              }`}
           >
             Shipping times are estimated and not guaranteed. We are not
             responsible for delays due to unforeseen circumstances such as
@@ -196,23 +177,20 @@ export default function TermsAndConditionsPage() {
           </p>
 
           <h2
-            className={`text-2xl sm:text-3xl font-bold mb-4 mt-8 ${
-              theme === "light" ? "text-gray-800" : "text-white"
-            }`}
+            className={`text-2xl sm:text-3xl font-bold mb-4 mt-8 ${theme === "light" ? "text-gray-800" : "text-white"
+              }`}
           >
             6. Returns and Refunds
           </h2>
           <p
-            className={`text-sm sm:text-base mb-6 ${
-              theme === "light" ? "text-gray-600" : "text-gray-300"
-            }`}
+            className={`text-sm sm:text-base mb-6 ${theme === "light" ? "text-gray-600" : "text-gray-300"
+              }`}
           >
             Please refer to our{" "}
             <a
-              href="/refund-policy"
-              className={`${
-                theme === "light" ? "text-yellow-600" : "text-yellow-400"
-              } hover:underline`}
+              href="/refund"
+              className={`${theme === "light" ? "text-yellow-600" : "text-yellow-400"
+                } hover:underline`}
             >
               Refund Policy
             </a>{" "}
@@ -220,16 +198,14 @@ export default function TermsAndConditionsPage() {
           </p>
 
           <h2
-            className={`text-2xl sm:text-3xl font-bold mb-4 mt-8 ${
-              theme === "light" ? "text-gray-800" : "text-white"
-            }`}
+            className={`text-2xl sm:text-3xl font-bold mb-4 mt-8 ${theme === "light" ? "text-gray-800" : "text-white"
+              }`}
           >
             7. Limitation of Liability
           </h2>
           <p
-            className={`text-sm sm:text-base mb-6 ${
-              theme === "light" ? "text-gray-600" : "text-gray-300"
-            }`}
+            className={`text-sm sm:text-base mb-6 ${theme === "light" ? "text-gray-600" : "text-gray-300"
+              }`}
           >
             To the fullest extent permitted by law, 1Scoop Protein shall not be
             liable for any indirect, incidental, or consequential damages
@@ -238,16 +214,14 @@ export default function TermsAndConditionsPage() {
           </p>
 
           <h2
-            className={`text-2xl sm:text-3xl font-bold mb-4 mt-8 ${
-              theme === "light" ? "text-gray-800" : "text-white"
-            }`}
+            className={`text-2xl sm:text-3xl font-bold mb-4 mt-8 ${theme === "light" ? "text-gray-800" : "text-white"
+              }`}
           >
             8. Indemnification
           </h2>
           <p
-            className={`text-sm sm:text-base mb-6 ${
-              theme === "light" ? "text-gray-600" : "text-gray-300"
-            }`}
+            className={`text-sm sm:text-base mb-6 ${theme === "light" ? "text-gray-600" : "text-gray-300"
+              }`}
           >
             You agree to indemnify and hold harmless 1Scoop Protein from any
             claims, damages, expenses, or liabilities arising from your use of
@@ -255,16 +229,14 @@ export default function TermsAndConditionsPage() {
           </p>
 
           <h2
-            className={`text-2xl sm:text-3xl font-bold mb-4 mt-8 ${
-              theme === "light" ? "text-gray-800" : "text-white"
-            }`}
+            className={`text-2xl sm:text-3xl font-bold mb-4 mt-8 ${theme === "light" ? "text-gray-800" : "text-white"
+              }`}
           >
             9. Third-Party Links
           </h2>
           <p
-            className={`text-sm sm:text-base mb-6 ${
-              theme === "light" ? "text-gray-600" : "text-gray-300"
-            }`}
+            className={`text-sm sm:text-base mb-6 ${theme === "light" ? "text-gray-600" : "text-gray-300"
+              }`}
           >
             Our Site may contain links to third-party websites. We do not
             endorse and are not responsible for the content, policies, or
@@ -272,16 +244,14 @@ export default function TermsAndConditionsPage() {
           </p>
 
           <h2
-            className={`text-2xl sm:text-3xl font-bold mb-4 mt-8 ${
-              theme === "light" ? "text-gray-800" : "text-white"
-            }`}
+            className={`text-2xl sm:text-3xl font-bold mb-4 mt-8 ${theme === "light" ? "text-gray-800" : "text-white"
+              }`}
           >
             10. Changes to Terms and Conditions
           </h2>
           <p
-            className={`text-sm sm:text-base mb-6 ${
-              theme === "light" ? "text-gray-600" : "text-gray-300"
-            }`}
+            className={`text-sm sm:text-base mb-6 ${theme === "light" ? "text-gray-600" : "text-gray-300"
+              }`}
           >
             We may update these Terms and Conditions at any time. Changes will
             be effective immediately upon posting. Your continued use of the
@@ -289,16 +259,14 @@ export default function TermsAndConditionsPage() {
           </p>
 
           <h2
-            className={`text-2xl sm:text-3xl font-bold mb-4 mt-8 ${
-              theme === "light" ? "text-gray-800" : "text-white"
-            }`}
+            className={`text-2xl sm:text-3xl font-bold mb-4 mt-8 ${theme === "light" ? "text-gray-800" : "text-white"
+              }`}
           >
             11. Governing Law
           </h2>
           <p
-            className={`text-sm sm:text-base mb-6 ${
-              theme === "light" ? "text-gray-600" : "text-gray-300"
-            }`}
+            className={`text-sm sm:text-base mb-6 ${theme === "light" ? "text-gray-600" : "text-gray-300"
+              }`}
           >
             These Terms shall be governed by and construed in accordance with
             the laws of India. Any disputes arising under these Terms will be
@@ -307,30 +275,26 @@ export default function TermsAndConditionsPage() {
           </p>
 
           <h2
-            className={`text-2xl sm:text-3xl font-bold mb-4 mt-8 ${
-              theme === "light" ? "text-gray-800" : "text-white"
-            }`}
+            className={`text-2xl sm:text-3xl font-bold mb-4 mt-8 ${theme === "light" ? "text-gray-800" : "text-white"
+              }`}
           >
             12. Contact Information
           </h2>
           <p
-            className={`text-sm sm:text-base mb-6 ${
-              theme === "light" ? "text-gray-600" : "text-gray-300"
-            }`}
+            className={`text-sm sm:text-base mb-6 ${theme === "light" ? "text-gray-600" : "text-gray-300"
+              }`}
           >
             For questions regarding these Terms and Conditions, please contact:
           </p>
           <p
-            className={`text-sm sm:text-base mb-6 ${
-              theme === "light" ? "text-gray-600" : "text-gray-300"
-            }`}
+            className={`text-sm sm:text-base mb-6 ${theme === "light" ? "text-gray-600" : "text-gray-300"
+              }`}
           >
             📧 Email:{" "}
             <a
               href="mailto:supplementhub.contact@gmail.com"
-              className={`${
-                theme === "light" ? "text-yellow-600" : "text-yellow-400"
-              } hover:underline`}
+              className={`${theme === "light" ? "text-yellow-600" : "text-yellow-400"
+                } hover:underline`}
             >
               supplementhub.contact@gmail.com
             </a>
