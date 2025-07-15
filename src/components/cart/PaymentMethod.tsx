@@ -1,7 +1,10 @@
+"use client";
+
 import { Dispatch } from "redux";
 import { setCartItems } from "@/redux/cartSlice";
 import { ArrowLeft, CreditCard } from "lucide-react";
 import { THEMES } from "./CartPage";
+import { useEffect } from "react";
 
 type CartItem = {
   id: number;
@@ -34,7 +37,7 @@ type CouponType = {
   discount_percentage: number;
 };
 
-const PHONEPE_DISCOUNT = 0.03;
+const CASHFREE_DISCOUNT = 0.03;
 
 const PaymentMethod = ({
   paymentMethod,
@@ -54,8 +57,8 @@ const PaymentMethod = ({
   theme,
   scoopPointsToRedeem,
 }: {
-  paymentMethod: "phonePe" | "cod";
-  setPaymentMethod: (method: "phonePe" | "cod") => void;
+  paymentMethod: "cashfree" | "cod";
+  setPaymentMethod: (method: "cashfree" | "cod") => void;
   cartItems: CartItem[];
   total: number;
   appliedCoupon: CouponType | null;
@@ -71,13 +74,26 @@ const PaymentMethod = ({
   theme: "light";
   scoopPointsToRedeem: number;
 }) => {
-  const phonePeDiscount =
-    paymentMethod === "phonePe" ? total * PHONEPE_DISCOUNT : 0;
-  const finalTotal = total - phonePeDiscount;
+  const cashfreeDiscount =
+    paymentMethod === "cashfree" ? total * CASHFREE_DISCOUNT : 0;
+  const finalTotal = total - cashfreeDiscount;
+
+  // Load Cashfree SDK dynamically
+  useEffect(() => {
+    const script = document.createElement("script");
+    script.src = "https://sdk.cashfree.com/js/v3/cashfree.js";
+    script.async = true;
+    document.body.appendChild(script);
+    return () => {
+      document.body.removeChild(script);
+    };
+  }, []);
 
   const handleCheckout = async () => {
-    if (!user?.id || !cartItems.length)
-      return setErrorMessage("Cart is empty or user not logged in.");
+    if (!user?.id || !cartItems.length) {
+      setErrorMessage("Cart is empty or user not logged in.");
+      return;
+    }
     setIsProcessing(true);
     setErrorMessage("");
     setSuccessMessage("");
@@ -102,9 +118,54 @@ const PaymentMethod = ({
         credentials: "include",
       });
 
-      if (paymentMethod === "phonePe") {
-        const orderId = `order-${Date.now()}`;
-        const response = await fetch("/api/create-phonepe-order", {
+      if (paymentMethod === "cashfree") {
+        const response = await fetch("/api/payment", {
+          method: "POST",
+          headers: { "Content-Type": "application/json" },
+          body: JSON.stringify({
+            cartItems,
+            userId: user.id,
+            address,
+            couponCode: appliedCoupon?.code,
+            scoopPointsToRedeem,
+            cashfreeDiscount,
+          }),
+          credentials: "include",
+        });
+
+        const paymentData = await response.json();
+        if (!response.ok) {
+          throw new Error(
+            paymentData.error || "Failed to initiate Cashfree payment"
+          );
+        }
+
+        if (!paymentData.paymentSessionId) {
+          throw new Error("No payment session ID returned");
+        }
+
+        // Initialize Cashfree SDK
+        if (typeof window.Cashfree === "undefined") {
+          throw new Error("Cashfree SDK not loaded");
+        }
+
+        const cashfree = new window.Cashfree({
+          mode: process.env.NEXT_PUBLIC_CASHFREE_ENV || "sandbox",
+        });
+
+        // Initiate payment
+        cashfree.checkout({
+          paymentSessionId: paymentData.paymentSessionId,
+          redirect: true,
+          returnUrl: `${process.env.NEXT_PUBLIC_APP_URL}/payment-status?orderId=${paymentData.orderId}&orderToken=${paymentData.orderToken}`,
+        }).then(() => {
+          console.log("Payment initiated successfully");
+        }).catch((error: unknown) => {
+          const errorMessage = error instanceof Error ? error.message : "Unknown error";
+          throw new Error(`Payment initiation failed: ${errorMessage}`);
+        });
+      } else {
+        const codResponse = await fetch("/api/create-cod-order", {
           method: "POST",
           headers: { "Content-Type": "application/json" },
           body: JSON.stringify({
@@ -113,37 +174,16 @@ const PaymentMethod = ({
             userId: user.id,
             address,
             couponCode: appliedCoupon?.code,
-            orderId,
             scoopPointsToRedeem,
-            phonePeDiscount,
-          }),
-          credentials: "include",
-        });
-
-        const paymentData = await response.json();
-        if (!response.ok)
-          throw new Error(
-            paymentData.error || "Failed to initiate PhonePe payment"
-          );
-        window.location.href = paymentData.paymentUrl;
-      } else {
-        const codResponse = await fetch("/api/create-cod-order", {
-          method: "POST",
-          headers: { "Content-Type": "application/json" },
-          body: JSON.stringify({
-            cartItems,
-            amount: total,
-            userId: user.id,
-            address,
-            couponCode: appliedCoupon?.code,
-            scoopPointsToRedeem,
+            cashfreeDiscount: 0, // No Cashfree discount for COD
           }),
           credentials: "include",
         });
 
         const codData = await codResponse.json();
-        if (!codResponse.ok)
+        if (!codResponse.ok) {
           throw new Error(codData.error || "Failed to create COD order");
+        }
         setSuccessMessage(
           `Order placed successfully! Your order ID is ${codData.orderId}`
         );
@@ -170,39 +210,35 @@ const PaymentMethod = ({
       </h2>
       <div className="space-y-3 sm:space-y-4">
         <div
-          className={`p-3 sm:p-4 rounded-lg ${
-            THEMES[theme].border
-          } border cursor-pointer ${
-            paymentMethod === "phonePe" ? "border-yellow-500 bg-yellow-50" : ""
-          }`}
-          onClick={() => setPaymentMethod("phonePe")}
+          className={`p-3 sm:p-4 rounded-lg ${THEMES[theme].border
+            } border cursor-pointer ${paymentMethod === "cashfree" ? "border-yellow-500 bg-yellow-50" : ""
+            }`}
+          onClick={() => setPaymentMethod("cashfree")}
         >
           <label className="flex items-center cursor-pointer">
             <input
               type="radio"
               name="paymentMethod"
-              checked={paymentMethod === "phonePe"}
-              onChange={() => setPaymentMethod("phonePe")}
+              checked={paymentMethod === "cashfree"}
+              onChange={() => setPaymentMethod("cashfree")}
               className="mr-2"
             />
             <div>
               <span
                 className={`font-medium text-sm sm:text-base ${THEMES[theme].text.primary}`}
               >
-                PhonePe Gateway
+                Cashfree Gateway
               </span>
               <p className={`text-xs sm:text-sm ${THEMES[theme].text.muted}`}>
-                Pay securely using UPI (3% discount applied)
+                Pay securely using UPI, Card, or Netbanking (3% discount applied)
               </p>
             </div>
           </label>
         </div>
         <div
-          className={`p-3 sm:p-4 rounded-lg ${
-            THEMES[theme].border
-          } border cursor-pointer ${
-            paymentMethod === "cod" ? "border-yellow-500 bg-yellow-50" : ""
-          }`}
+          className={`p-3 sm:p-4 rounded-lg ${THEMES[theme].border
+            } border cursor-pointer ${paymentMethod === "cod" ? "border-yellow-500 bg-yellow-50" : ""
+            }`}
           onClick={() => setPaymentMethod("cod")}
         >
           <label className="flex items-center cursor-pointer">
@@ -258,8 +294,8 @@ const PaymentMethod = ({
             {scoopPointsToRedeem > 0 && (
               <p>Scoop Points Discount: -₹{scoopPointsToRedeem.toFixed(2)}</p>
             )}
-            {phonePeDiscount > 0 && (
-              <p>PhonePe Discount (3%): -₹{phonePeDiscount.toFixed(2)}</p>
+            {cashfreeDiscount > 0 && (
+              <p>Cashfree Discount (3%): -₹{cashfreeDiscount.toFixed(2)}</p>
             )}
             <p
               className={`font-bold mt-2 text-sm sm:text-base ${THEMES[theme].text.primary}`}
@@ -279,15 +315,14 @@ const PaymentMethod = ({
           <button
             onClick={handleCheckout}
             disabled={isProcessing}
-            className={`px-4 sm:px-6 py-2 rounded bg-yellow-500 text-black hover:bg-yellow-600 text-sm sm:text-base w-full sm:w-auto ${
-              isProcessing ? "opacity-50 cursor-not-allowed" : ""
-            }`}
+            className={`px-4 sm:px-6 py-2 rounded bg-yellow-500 text-black hover:bg-yellow-600 text-sm sm:text-base w-full sm:w-auto ${isProcessing ? "opacity-50 cursor-not-allowed" : ""
+              }`}
           >
             {isProcessing
               ? "Processing..."
               : paymentMethod === "cod"
-              ? "Place Order"
-              : "Proceed to Payment"}
+                ? "Place Order"
+                : "Proceed to Payment"}
           </button>
         </div>
       </div>

@@ -3,7 +3,7 @@
 import { useSelector, useDispatch } from "react-redux";
 import { selectCartItems, setCartItems } from "@/redux/cartSlice";
 import { cartService } from "@/services/cartService";
-import { useEffect, useState, Dispatch, SetStateAction } from "react";
+import { useEffect, useState } from "react";
 import StepIndicator from "./StepIndicator";
 import Messages from "./Messages";
 import CartItems from "./CartItems";
@@ -92,8 +92,8 @@ const CartPage = () => {
     state: "",
     zipCode: "",
   });
-  const [paymentMethod, setPaymentMethod] = useState<"phonePe" | "cod">(
-    "phonePe"
+  const [paymentMethod, setPaymentMethod] = useState<"cashfree" | "cod">(
+    "cashfree"
   );
   const [scoopPointsToRedeem, setScoopPointsToRedeem] = useState(0);
 
@@ -109,7 +109,7 @@ const CartPage = () => {
         dispatch(setCartItems(cart));
         if (fetchedUser.address) setAddress(fetchedUser.address);
         if (fetchedUser.paymentPreference)
-          setPaymentMethod(fetchedUser.paymentPreference);
+          setPaymentMethod(fetchedUser.paymentPreference as "cashfree" | "cod");
       }
     } catch (error) {
       console.error("Failed to fetch user or cart:", error);

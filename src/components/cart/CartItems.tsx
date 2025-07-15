@@ -1,3 +1,5 @@
+"use client";
+
 import { Dispatch } from "redux";
 import {
   removeFromCart,
@@ -268,9 +270,8 @@ const CartItems = ({
         <button
           onClick={() => setCheckoutStep(2)}
           disabled={cartItems.length === 0}
-          className={`mt-3 sm:mt-4 px-4 sm:px-6 py-2 rounded bg-yellow-500 text-black hover:bg-yellow-600 text-sm sm:text-base ${
-            cartItems.length === 0 ? "opacity-50 cursor-not-allowed" : ""
-          }`}
+          className={`mt-3 sm:mt-4 px-4 sm:px-6 py-2 rounded bg-yellow-500 text-black hover:bg-yellow-600 text-sm sm:text-base ${cartItems.length === 0 ? "opacity-50 cursor-not-allowed" : ""
+            }`}
         >
           Proceed to Delivery{" "}
           <ArrowRight className="inline-block ml-1 sm:ml-2 w-4 h-4" />

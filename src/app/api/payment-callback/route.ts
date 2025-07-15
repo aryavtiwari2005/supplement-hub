@@ -44,11 +44,11 @@ async function sendOrderConfirmationEmail(userEmail: string, order: any) {
         <p><strong>Discount:</strong> ₹${order.discount}</p>
         <p><strong>Total:</strong> ₹${order.total}</p>
         <h3>Shipping Address:</h3>
-        <p>${order.address.street}<br>${order.address.city}, ${
-        order.address.state
-      } ${order.address.zipCode}</p>
+        <p>${order.address.street}<br>${order.address.city}, ${order.address.state} ${order.address.zipCode}</p>
         <p><strong>Payment Method:</strong> ${order.payment_method}</p>
         <p><strong>Status:</strong> ${order.status}</p>
+        <p><strong>Scoop Points Used:</strong> ${order.scoop_points_used || 0}</p>
+        <p><strong>Scoop Points Earned:</strong> ${order.scoop_points_earned || 0}</p>
       `,
     });
     console.log("Order confirmation email sent to:", userEmail);
@@ -60,49 +60,62 @@ async function sendOrderConfirmationEmail(userEmail: string, order: any) {
 export async function POST(req: NextRequest) {
   try {
     const body = await req.json();
-    const xVerifyHeader = req.headers.get("x-verify");
+    const xVerifyHeader = req.headers.get("x-webhook-signature");
     console.log(
       "Callback received:",
       JSON.stringify(body, null, 2),
-      "X-VERIFY:",
+      "X-WEBHOOK-SIGNATURE:",
       xVerifyHeader
     );
 
     if (!xVerifyHeader) {
-      console.error("Missing X-VERIFY header");
+      console.error("Missing X-WEBHOOK-SIGNATURE header");
       return NextResponse.json(
         { error: "Missing verification header" },
         { status: 400 }
       );
     }
 
-    const saltKey = process.env.PHONEPE_SALT_KEY;
-    const saltIndex = process.env.PHONEPE_SALT_INDEX || "1";
-    const stringToHash = `${JSON.stringify(body)}${saltKey}`;
-    const calculatedChecksum =
-      crypto.createHash("sha256").update(stringToHash).digest("hex") +
-      "###" +
-      saltIndex;
-
-    if (calculatedChecksum !== xVerifyHeader) {
-      console.error("Checksum mismatch:", {
-        calculatedChecksum,
-        xVerifyHeader,
-      });
-      return NextResponse.json({ error: "Invalid checksum" }, { status: 400 });
+    const secretKey = process.env.CASHFREE_SECRET_KEY;
+    if (!secretKey) {
+      console.error("Missing CASHFREE_SECRET_KEY");
+      return NextResponse.json(
+        { error: "Server configuration error" },
+        { status: 500 }
+      );
     }
 
-    const { merchantTransactionId, code: responseCode } = body.data;
-    console.log("Processing transaction:", {
-      merchantTransactionId,
-      responseCode,
-    });
+    const stringToHash = JSON.stringify(body);
+    const calculatedSignature = crypto
+      .createHmac("sha256", secretKey)
+      .update(stringToHash)
+      .digest("base64");
 
-    // Get transaction details with validation
+    if (calculatedSignature !== xVerifyHeader) {
+      console.error("Signature mismatch:", {
+        calculatedSignature,
+        xVerifyHeader,
+      });
+      return NextResponse.json({ error: "Invalid signature" }, { status: 400 });
+    }
+
+    const { event, data } = body;
+    const { order_id: orderToken, order_status } = data;
+    if (!event || !orderToken) {
+      console.error("Missing event or order_id in webhook payload");
+      return NextResponse.json(
+        { error: "Invalid webhook payload" },
+        { status: 400 }
+      );
+    }
+
+    console.log("Processing webhook event:", { event, orderToken, order_status });
+
+    // Get transaction details
     const { data: transaction, error: txnFetchError } = await supabase
       .from("payment_transactions")
       .select("order_id, user_id, status")
-      .eq("transaction_id", merchantTransactionId)
+      .eq("transaction_id", orderToken)
       .single();
 
     if (txnFetchError || !transaction) {
@@ -113,9 +126,9 @@ export async function POST(req: NextRequest) {
       );
     }
 
-    // Check if transaction was already processed
-    if (transaction.status === "success") {
-      console.log("Transaction already processed:", merchantTransactionId);
+    // Check for idempotency
+    if (["success", "failed", "cancelled", "expired"].includes(transaction.status)) {
+      console.log("Transaction already processed:", { orderToken, status: transaction.status });
       return NextResponse.json({ success: true });
     }
 
@@ -136,209 +149,221 @@ export async function POST(req: NextRequest) {
       );
     }
 
-    if (responseCode === "PAYMENT_SUCCESS" || responseCode === "SUCCESS") {
-      try {
-        console.log("Payment successful, processing order...");
-        const subtotal = pendingOrder.cart_items.reduce(
-          (sum: number, item: any) => {
-            if (!item.price || !item.quantity) {
-              console.error("Invalid item data:", item);
-              throw new Error("Invalid item data in cart");
-            }
-            return sum + item.price * item.quantity;
-          },
-          0
-        );
-
-        let discount = 0;
-        if (pendingOrder.coupon_code) {
-          const coupon = await cartService.getCoupon(pendingOrder.coupon_code);
-          discount = coupon ? subtotal * (coupon.discount_percentage / 100) : 0;
+    // Handle different webhook events
+    switch (event) {
+      case "PAYMENT_SUCCESS":
+        if (order_status !== "PAID") {
+          console.error("PAYMENT_SUCCESS event with non-PAID status:", order_status);
+          return NextResponse.json(
+            { error: "Invalid payment status for PAYMENT_SUCCESS" },
+            { status: 400 }
+          );
         }
-        const total = subtotal - discount;
 
-        const orderId = `order-${Date.now()}`;
-        const newOrder = {
-          items: pendingOrder.cart_items,
-          total,
-          status: "pending",
-          address: pendingOrder.address,
-          discount,
-          order_id: orderId,
-          subtotal,
-          created_at: new Date().toISOString(),
-          coupon_code: pendingOrder.coupon_code || null,
-          payment_method: "phonePe",
+        try {
+          console.log("Processing successful payment...");
+          const subtotal = pendingOrder.cart_items.reduce(
+            (sum: number, item: any) => {
+              if (!item.price || !item.quantity) {
+                console.error("Invalid item data:", item);
+                throw new Error("Invalid item data in cart");
+              }
+              return sum + item.price * item.quantity;
+            },
+            0
+          );
+
+          let discount = pendingOrder.discount || 0;
+          const total = subtotal - discount;
+
+          const orderId = `order-${Date.now()}`;
+          const newOrder = {
+            items: pendingOrder.cart_items,
+            total,
+            status: "pending",
+            address: pendingOrder.address,
+            discount,
+            order_id: orderId,
+            subtotal,
+            created_at: new Date().toISOString(),
+            coupon_code: pendingOrder.coupon_code || null,
+            payment_method: "cashfree",
+            scoop_points_used: pendingOrder.scoop_points_used || 0,
+            scoop_points_earned: pendingOrder.scoop_points_earned || 0,
+            transaction_id: orderToken,
+          };
+
+          // Update user orders and scoop points
+          let updateSuccess = false;
+          let attempts = 0;
+          const maxAttempts = 3;
+
+          while (attempts < maxAttempts && !updateSuccess) {
+            try {
+              const { data: userData, error: userFetchError } = await supabase
+                .from("users_onescoop")
+                .select("orders, email, scoop_points")
+                .eq("id", userId)
+                .single();
+
+              if (userFetchError || !userData) {
+                throw new Error(`Failed to fetch user data: ${userFetchError?.message}`);
+              }
+
+              const currentOrders = Array.isArray(userData.orders) ? userData.orders : [];
+              if (currentOrders.some((order: any) => order.order_id === orderId)) {
+                console.log("Order already exists in user profile:", orderId);
+                updateSuccess = true;
+                break;
+              }
+
+              const updatedOrders = [...currentOrders, newOrder];
+              const newScoopPoints =
+                (userData.scoop_points || 0) -
+                (pendingOrder.scoop_points_used || 0) +
+                (pendingOrder.scoop_points_earned || 0);
+
+              const { error: updateError } = await supabase
+                .from("users_onescoop")
+                .update({
+                  orders: updatedOrders,
+                  cart: [],
+                  scoop_points: newScoopPoints,
+                })
+                .eq("id", userId);
+
+              if (updateError) {
+                throw new Error(`Update failed: ${updateError.message}`);
+              }
+
+              // Verify update
+              const { data: verifyData, error: verifyError } = await supabase
+                .from("users_onescoop")
+                .select("orders")
+                .eq("id", userId)
+                .single();
+
+              if (
+                verifyError ||
+                !verifyData?.orders.some((o: any) => o.order_id === orderId)
+              ) {
+                throw new Error("Order update verification failed");
+              }
+
+              updateSuccess = true;
+              await sendOrderConfirmationEmail(userData.email, newOrder);
+            } catch (error) {
+              attempts++;
+              const typedError = error as CustomError;
+              console.error(`Update attempt ${attempts} failed:`, typedError.message);
+              if (attempts === maxAttempts) throw typedError;
+              await new Promise((resolve) => setTimeout(resolve, 1000 * attempts));
+            }
+          }
+
+          if (!updateSuccess) {
+            throw new Error("Failed to update user orders after all attempts");
+          }
+
+          // Clean up
+          const { error: deleteError } = await supabase
+            .from("pending_orders")
+            .delete()
+            .eq("temp_order_id", tempOrderId);
+
+          if (deleteError) {
+            console.warn("Failed to delete pending order:", deleteError.message);
+          }
+
+          const { error: txnUpdateError } = await supabase
+            .from("payment_transactions")
+            .update({
+              status: "success",
+              updated_at: new Date().toISOString(),
+              final_order_id: orderId,
+            })
+            .eq("transaction_id", orderToken);
+
+          if (txnUpdateError) {
+            console.warn("Failed to update transaction:", txnUpdateError.message);
+          }
+
+          console.log("Order successfully processed:", {
+            orderId,
+            userId,
+            transactionId: orderToken,
+            orderCount: (
+              await supabase
+                .from("users_onescoop")
+                .select("orders")
+                .eq("id", userId)
+                .single()
+            ).data?.orders.length,
+          });
+        } catch (error) {
+          const typedError = error as CustomError;
+          console.error("Order processing failed:", typedError.message, typedError.stack);
+
+          await supabase.from("failed_orders").insert({
+            user_id: userId,
+            order_data: {
+              ...pendingOrder,
+              transaction_id: orderToken,
+              failed_at: new Date().toISOString(),
+              error_message: typedError.message,
+            },
+          });
+
+          return NextResponse.json(
+            {
+              error: "Failed to process successful payment",
+              details: typedError.message,
+            },
+            { status: 500 }
+          );
+        }
+        break;
+
+      case "PAYMENT_FAILED":
+      case "USER_DROPPED":
+      case "ORDER_EXPIRED":
+        console.log(`Handling ${event} event:`, order_status);
+        const statusMap: { [key: string]: string } = {
+          PAYMENT_FAILED: "failed",
+          USER_DROPPED: "cancelled",
+          ORDER_EXPIRED: "expired",
         };
 
-        // Robust user update with verification
-        let updateSuccess = false;
-        let attempts = 0;
-        const maxAttempts = 3;
-
-        while (attempts < maxAttempts && !updateSuccess) {
-          try {
-            // Fetch current user data
-            const { data: userData, error: userFetchError } = await supabase
-              .from("users_onescoop")
-              .select("orders, email")
-              .eq("id", userId)
-              .single();
-
-            if (userFetchError || !userData) {
-              throw new Error(
-                `Failed to fetch user data: ${userFetchError?.message}`
-              );
-            }
-
-            const currentOrders = Array.isArray(userData.orders)
-              ? userData.orders
-              : [];
-
-            // Check if order already exists to prevent duplicates
-            if (
-              currentOrders.some((order: any) => order.order_id === orderId)
-            ) {
-              console.log("Order already exists in user profile:", orderId);
-              updateSuccess = true;
-              break;
-            }
-
-            const updatedOrders = [...currentOrders, newOrder];
-
-            // Update user with new orders
-            const { error: updateError } = await supabase
-              .from("users_onescoop")
-              .update({
-                orders: updatedOrders,
-                cart: [],
-              })
-              .eq("id", userId);
-
-            if (updateError) {
-              throw new Error(`Update failed: ${updateError.message}`);
-            }
-
-            // Verify update
-            const { data: verifyData, error: verifyError } = await supabase
-              .from("users_onescoop")
-              .select("orders")
-              .eq("id", userId)
-              .single();
-
-            if (
-              verifyError ||
-              !verifyData?.orders.some((o: any) => o.order_id === orderId)
-            ) {
-              throw new Error("Order update verification failed");
-            }
-
-            updateSuccess = true;
-            await sendOrderConfirmationEmail(userData.email, newOrder);
-          } catch (error) {
-            attempts++;
-            const typedError = error as CustomError;
-            console.error(
-              `Update attempt ${attempts} failed:`,
-              typedError.message
-            );
-            if (attempts === maxAttempts) throw typedError;
-            await new Promise((resolve) =>
-              setTimeout(resolve, 1000 * attempts)
-            );
-          }
-        }
-
-        if (!updateSuccess) {
-          throw new Error("Failed to update user orders after all attempts");
-        }
-
-        // Clean up
-        const { error: deleteError } = await supabase
+        await supabase
           .from("pending_orders")
-          .delete()
+          .update({
+            status: statusMap[event],
+            updated_at: new Date().toISOString(),
+          })
           .eq("temp_order_id", tempOrderId);
 
-        if (deleteError) {
-          console.warn("Failed to delete pending order:", deleteError.message);
-        }
-
-        const { error: txnUpdateError } = await supabase
+        await supabase
           .from("payment_transactions")
           .update({
-            status: "success",
+            status: statusMap[event],
             updated_at: new Date().toISOString(),
-            final_order_id: orderId,
+            failure_reason: data.error_message || event,
           })
-          .eq("transaction_id", merchantTransactionId);
+          .eq("transaction_id", orderToken);
+        break;
 
-        if (txnUpdateError) {
-          console.warn("Failed to update transaction:", txnUpdateError.message);
-        }
-
-        console.log("Order successfully processed:", {
-          orderId,
-          userId,
-          transactionId: merchantTransactionId,
-          orderCount: (
-            await supabase
-              .from("users_onescoop")
-              .select("orders")
-              .eq("id", userId)
-              .single()
-          ).data?.orders.length,
-        });
-      } catch (error) {
-        const typedError = error as CustomError;
-        console.error(
-          "Order processing failed:",
-          typedError.message,
-          typedError.stack
-        );
-
-        await supabase.from("failed_orders").insert({
-          user_id: userId,
-          order_data: {
-            ...pendingOrder,
-            transaction_id: merchantTransactionId,
-            failed_at: new Date().toISOString(),
-            error_message: typedError.message,
-          },
-        });
-
+      default:
+        console.warn("Unhandled webhook event:", event);
         return NextResponse.json(
-          {
-            error: "Failed to process successful payment",
-            details: typedError.message,
-          },
-          { status: 500 }
+          { error: `Unsupported webhook event: ${event}` },
+          { status: 400 }
         );
-      }
-    } else {
-      console.log("Payment failed:", responseCode);
-      await supabase
-        .from("pending_orders")
-        .delete()
-        .eq("temp_order_id", tempOrderId);
-
-      await supabase
-        .from("payment_transactions")
-        .update({
-          status: "failed",
-          updated_at: new Date().toISOString(),
-          failure_reason: responseCode || "Unknown error",
-        })
-        .eq("transaction_id", merchantTransactionId);
     }
 
     return NextResponse.json({ success: true });
   } catch (error) {
     const typedError = error as CustomError;
-    console.error(
-      "Callback processing error:",
-      typedError.message,
-      typedError.stack
-    );
+    console.error("Callback processing error:", typedError.message, typedError.stack);
     return NextResponse.json(
       { error: typedError.message || "Failed to process callback" },
       { status: 500 }

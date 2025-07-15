@@ -211,11 +211,10 @@ export default function HeroSection() {
               <button
                 key={index}
                 onClick={() => setCurrentSlide(index)}
-                className={`w-2 h-2 rounded-full transition-colors ${
-                  currentSlide === index
+                className={`w-2 h-2 rounded-full transition-colors ${currentSlide === index
                     ? "bg-white"
                     : "bg-white/30 hover:bg-white/50"
-                }`}
+                  }`}
                 aria-label={`Go to slide ${index + 1}`}
               />
             ))}
@@ -224,21 +223,19 @@ export default function HeroSection() {
       </div>
 
       <div
-        className={`w-full py-2 px-4 ${
-          theme === "light" ? "bg-gray-50" : "bg-gray-900"
-        }`}
+        className={`w-full py-2 px-4 ${theme === "light" ? "bg-gray-50" : "bg-gray-900"
+          }`}
       >
         <div className="container mx-auto max-w-6xl">
           {/* Categories and Values Section - unchanged */}
           <div
-            className={`grid grid-cols-1 sm:grid-cols-2 md:grid-cols-3 gap-6 ${
-              theme === "light" ? "text-gray-800" : "text-gray-200"
-            }`}
+            className={`grid grid-cols-1 sm:grid-cols-2 md:grid-cols-3 gap-6 ${theme === "light" ? "text-gray-800" : "text-gray-200"
+              }`}
           >
             {/* ... unchanged premium quality, science-backed, fast delivery sections ... */}
           </div>
 
-          <div
+          {/* <div
             className={`mt-10 p-6 rounded-xl ${
               theme === "light"
                 ? "bg-gradient-to-r from-yellow-50 to-orange-50"
@@ -288,7 +285,7 @@ export default function HeroSection() {
                           className="w-full h-full object-contain"
                         />
                       </div>
-                      <p className="text-center这种 font-medium text-sm">
+                      <p className="text-center font-medium text-sm">
                         {product.name}
                       </p>
                     </div>
@@ -296,13 +293,12 @@ export default function HeroSection() {
                 </div>
               </div>
             </div>
-          </div>
+          </div> */}
 
           <div className="mt-10">
             <h2
-              className={`text-xl font-bold mb-6 text-center ${
-                theme === "light" ? "text-gray-800" : "text-white"
-              }`}
+              className={`text-xl font-bold mb-6 text-center ${theme === "light" ? "text-gray-800" : "text-white"
+                }`}
             >
               Shop By Brand
             </h2>
@@ -313,9 +309,8 @@ export default function HeroSection() {
                     .toLowerCase()
                     .replace(/\s+/g, "-")}`}
                   key={index}
-                  className={`block rounded-lg overflow-hidden shadow-sm ${
-                    theme === "light" ? "bg-white" : "bg-gray-800"
-                  }`}
+                  className={`block rounded-lg overflow-hidden shadow-sm ${theme === "light" ? "bg-white" : "bg-gray-800"
+                    }`}
                 >
                   <div className="h-32 overflow-hidden">
                     <img
