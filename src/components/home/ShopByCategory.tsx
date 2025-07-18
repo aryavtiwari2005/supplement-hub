@@ -75,7 +75,7 @@ export default function ShopByCategory() {
           100% { transform: translateX(-100%); }
         }
         .animate-marquee-slow {
-          animation: marquee-slow 15s linear infinite;
+          animation: marquee-slow 30s linear infinite;
         }
       `}</style>
 
