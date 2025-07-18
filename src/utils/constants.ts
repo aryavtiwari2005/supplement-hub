@@ -100,7 +100,6 @@ export const fetchBestSellers = async (): Promise<Product[]> => {
     `
     )
     .order("sales_count", { ascending: false })
-    .limit(4);
 
   if (error) {
     console.error("Error fetching best sellers:", error);

@@ -108,12 +108,14 @@ interface BlogFormState {
 interface Banner {
   id: number;
   image_url: string;
+  mobile_image_url?: string; // Added mobile image url
   created_at: string;
 }
 
+// Updated BannerFormState Interface
 interface BannerFormState {
-  image: File | null;
-  imageUrl: string | null;
+  desktopImage: File | null;
+  mobileImage: File | null;
 }
 
 export default function AdminPanel() {
@@ -132,11 +134,13 @@ export default function AdminPanel() {
     | "users"
     | "bestSellers"
     | "hero"
+    | "settings"
   >("products");
+  const [isCodEnabled, setIsCodEnabled] = useState(true);
   const [banners, setBanners] = useState<Banner[]>([]);
   const [bannerForm, setBannerForm] = useState<BannerFormState>({
-    image: null,
-    imageUrl: null,
+    desktopImage: null,
+    mobileImage: null,
   });
   const [showBannerForm, setShowBannerForm] = useState<boolean>(false);
   const [consultations, setConsultations] = useState<Consultation[]>([]);
@@ -285,10 +289,11 @@ export default function AdminPanel() {
       setConsultations(consultationData || []);
 
       // Fetch banners
-      const { data: bannerData } = await supabase
+      const { data: bannerData, error: bannerError } = await supabase
         .from("banners")
-        .select("*")
+        .select("id, image_url, mobile_image_url, created_at")
         .order("created_at", { ascending: true });
+      if (bannerError) throw new Error(`Banner fetch error: ${bannerError.message}`);
       setBanners(bannerData || []);
 
       // Fetch Summer Health products
@@ -327,9 +332,21 @@ export default function AdminPanel() {
         .select("*")
         .limit(6);
       setFeaturedBrands(brandData || []);
+
+      // Fetch COD setting
+      const { data: settingsData, error: settingsError } = await supabase
+        .from('site_settings')
+        .select('is_cod_enabled')
+        .eq('id', 1)
+        .single();
+
+      if (settingsError) throw new Error(`Settings fetch error: ${settingsError.message}`);
+      if (settingsData) {
+        setIsCodEnabled(settingsData.is_cod_enabled);
+      }
+
     } catch (err: any) {
       setError(err.message || "Failed to fetch data");
-      console.error(err);
     } finally {
       setLoading(false);
     }
@@ -396,39 +413,48 @@ export default function AdminPanel() {
   const handleBannerSubmit = async (e: React.FormEvent) => {
     e.preventDefault();
     setError("");
+
+    if (!bannerForm.desktopImage) {
+      setError("A desktop banner image is required.");
+      return;
+    }
+
     setLoading(true);
     try {
-      let finalImageUrl = bannerForm.imageUrl;
-      if (bannerForm.image) {
-        const fileExt = bannerForm.image.name.split(".").pop();
-        const fileName = `${Date.now()}.${fileExt}`;
-        const { data, error: uploadError } = await supabase.storage
+      let desktopUrl = "";
+      let mobileUrl: string | null = null;
+
+      // Upload desktop image
+      const desktopFileExt = bannerForm.desktopImage.name.split(".").pop();
+      const desktopFileName = `desktop-${Date.now()}.${desktopFileExt}`;
+      const { error: desktopUploadError } = await supabase.storage
+        .from("banners")
+        .upload(desktopFileName, bannerForm.desktopImage);
+      if (desktopUploadError) throw new Error(`Desktop Banner Upload Error: ${desktopUploadError.message}`);
+      desktopUrl = supabase.storage.from("banners").getPublicUrl(desktopFileName).data.publicUrl;
+
+      // Upload mobile image if it exists
+      if (bannerForm.mobileImage) {
+        const mobileFileExt = bannerForm.mobileImage.name.split(".").pop();
+        const mobileFileName = `mobile-${Date.now()}.${mobileFileExt}`;
+        const { error: mobileUploadError } = await supabase.storage
           .from("banners")
-          .upload(fileName, bannerForm.image);
-        if (uploadError)
-          throw new Error(
-            `Failed to upload banner image: ${uploadError.message}`
-          );
-        const { data: publicUrlData } = supabase.storage
-          .from("banners")
-          .getPublicUrl(fileName);
-        finalImageUrl = publicUrlData.publicUrl;
-      } else {
-        throw new Error("Please select an image to upload");
+          .upload(mobileFileName, bannerForm.mobileImage);
+        if (mobileUploadError) throw new Error(`Mobile Banner Upload Error: ${mobileUploadError.message}`);
+        mobileUrl = supabase.storage.from("banners").getPublicUrl(mobileFileName).data.publicUrl;
       }
 
+      // Insert into database
       const { error: insertError } = await supabase
         .from("banners")
-        .insert([{ image_url: finalImageUrl }]);
-      if (insertError)
-        throw new Error(`Failed to save banner: ${insertError.message}`);
+        .insert([{ image_url: desktopUrl, mobile_image_url: mobileUrl }]);
+      if (insertError) throw new Error(`Failed to save banner: ${insertError.message}`);
 
-      setBannerForm({ image: null, imageUrl: null });
+      setBannerForm({ desktopImage: null, mobileImage: null });
       setShowBannerForm(false);
-      fetchData();
+      fetchData(); // Refresh data
     } catch (err: any) {
       setError(err.message || "Failed to save banner");
-      console.error("Banner submit error:", err);
     } finally {
       setLoading(false);
     }
@@ -516,6 +542,26 @@ export default function AdminPanel() {
         setError(err.message || "Failed to remove best seller");
         console.error("Error removing best seller:", err);
       }
+    }
+  };
+
+  const handleCodToggle = async () => {
+    const newValue = !isCodEnabled;
+    setIsCodEnabled(newValue); // Optimistic UI update
+
+    try {
+      const { error } = await supabase
+        .from('site_settings')
+        .update({ is_cod_enabled: newValue })
+        .eq('id', 1);
+
+      if (error) {
+        // Revert UI if update fails
+        setIsCodEnabled(!newValue);
+        throw new Error(`Failed to update setting: ${error.message}`);
+      }
+    } catch (err: any) {
+      setError(err.message);
     }
   };
 
@@ -834,6 +880,7 @@ export default function AdminPanel() {
           "users",
           "bestSellers",
           "hero",
+          "settings", // Added new settings tab
         ]}
       />
 
@@ -846,82 +893,33 @@ export default function AdminPanel() {
           <div>
             <h2 className="text-xl font-bold mb-4">Banners</h2>
             <button
-              onClick={() => {
-                console.log(
-                  "Add New Banner clicked, current showBannerForm:",
-                  showBannerForm
-                );
-                setShowBannerForm(true);
-              }}
+              onClick={() => setShowBannerForm(true)}
               className="bg-green-600 text-white px-6 py-2 rounded-lg mb-6 hover:bg-green-700"
-              disabled={loading}
             >
               Add New Banner
             </button>
             <div className="grid gap-4">
               {banners.map((banner) => (
-                <div
-                  key={banner.id}
-                  className="flex items-center gap-4 bg-white p-4 rounded-lg"
-                >
-                  <img
-                    src={banner.image_url}
-                    alt="Banner"
-                    className="w-32 h-32 object-cover rounded"
-                  />
+                <div key={banner.id} className="flex items-center gap-4 bg-white p-4 rounded-lg shadow">
+                  <div>
+                    <p className="font-bold text-sm">Desktop</p>
+                    <img src={banner.image_url} alt="Desktop Banner" className="w-32 h-auto object-cover rounded" />
+                  </div>
+                  <div>
+                    <p className="font-bold text-sm">Mobile</p>
+                    {banner.mobile_image_url ? (
+                      <img src={banner.mobile_image_url} alt="Mobile Banner" className="w-32 h-auto object-cover rounded" />
+                    ) : (
+                      <div className="w-32 h-16 flex items-center justify-center bg-gray-200 rounded">
+                        <span className="text-xs text-gray-500">No Image</span>
+                      </div>
+                    )}
+                  </div>
                   <button
                     onClick={() => deleteBanner(banner.id)}
                     className="ml-auto bg-red-600 text-white px-4 py-2 rounded hover:bg-red-700"
                   >
                     Delete
-                  </button>
-                </div>
-              ))}
-            </div>
-          </div>
-
-          {/* Summer Health Products Section */}
-          <div>
-            <h2 className="text-xl font-bold mb-4">
-              Summer Health Special ({summerHealthProducts.length}/4)
-            </h2>
-            <select
-              onChange={(e) => addSummerHealthProduct(Number(e.target.value))}
-              className="w-full max-w-xs p-2 border rounded mb-4"
-              value=""
-              disabled={summerHealthProducts.length >= 4}
-            >
-              <option value="">Select a product</option>
-              {products
-                .filter(
-                  (p) =>
-                    !summerHealthProducts.some((sh) => sh.product_id === p.id)
-                )
-                .map((product) => (
-                  <option key={product.id} value={product.id}>
-                    {product.name} ({product.brand})
-                  </option>
-                ))}
-            </select>
-            <div className="grid gap-4">
-              {summerHealthProducts.map((sh) => (
-                <div
-                  key={sh.id}
-                  className="flex items-center gap-4 bg-white p-4 rounded-lg"
-                >
-                  <img
-                    src={sh.products.image}
-                    alt={sh.products.name}
-                    className="w-16 h-16 object-cover rounded"
-                  />
-                  <span>
-                    {sh.products.name} ({sh.products.brand})
-                  </span>
-                  <button
-                    onClick={() => removeSummerHealthProduct(sh.id)}
-                    className="ml-auto bg-red-600 text-white px-4 py-2 rounded hover:bg-red-700"
-                  >
-                    Remove
                   </button>
                 </div>
               ))}
@@ -972,23 +970,30 @@ export default function AdminPanel() {
           {showBannerForm && (
             <div className="fixed inset-0 bg-black/50 flex items-center justify-center z-50">
               <div className="bg-white p-6 rounded-lg w-full max-w-md">
-                <h2 className="text-xl font-bold mb-4">Add Banner</h2>
+                <h2 className="text-xl font-bold mb-4">Add New Banner</h2>
                 {error && <p className="text-red-500 mb-4">{error}</p>}
-                <form onSubmit={handleBannerSubmit}>
-                  <div className="mb-4">
+                <form onSubmit={handleBannerSubmit} className="space-y-4">
+                  <div>
                     <label className="block text-sm font-medium mb-1">
-                      Banner Image
+                      Desktop Banner (1440x360) <span className="text-red-500">*</span>
                     </label>
                     <input
                       type="file"
                       accept="image/*"
-                      onChange={(e) => {
-                        const file = e.target.files?.[0] ?? null;
-                        console.log("File selected:", file);
-                        setBannerForm({ ...bannerForm, image: file });
-                      }}
+                      onChange={(e) => setBannerForm(prev => ({ ...prev, desktopImage: e.target.files?.[0] ?? null }))}
                       className="w-full p-2 border rounded"
-                      disabled={loading}
+                      required
+                    />
+                  </div>
+                  <div>
+                    <label className="block text-sm font-medium mb-1">
+                      Mobile Banner (540x270)
+                    </label>
+                    <input
+                      type="file"
+                      accept="image/*"
+                      onChange={(e) => setBannerForm(prev => ({ ...prev, mobileImage: e.target.files?.[0] ?? null }))}
+                      className="w-full p-2 border rounded"
                     />
                   </div>
                   <div className="flex gap-4">
@@ -1001,13 +1006,8 @@ export default function AdminPanel() {
                     </button>
                     <button
                       type="button"
-                      onClick={() => {
-                        console.log("Cancel clicked");
-                        setShowBannerForm(false);
-                        setError("");
-                      }}
+                      onClick={() => { setShowBannerForm(false); setError(""); }}
                       className="bg-gray-300 px-4 py-2 rounded hover:bg-gray-400"
-                      disabled={loading}
                     >
                       Cancel
                     </button>
@@ -1175,6 +1175,35 @@ export default function AdminPanel() {
             />
           )}
         </>
+      )}
+
+      {/* NEW: Settings Tab Content */}
+      {activeTab === "settings" && !loading && (
+        <div className="bg-white p-6 rounded-lg shadow">
+          <h2 className="text-2xl font-bold mb-6 text-gray-800">Site Settings</h2>
+          <div className="flex items-center justify-between border-b pb-4">
+            <div>
+              <h3 className="text-lg font-semibold text-gray-700">Cash on Delivery (COD)</h3>
+              <p className="text-sm text-gray-500">Enable or disable the Cash on Delivery payment option for customers.</p>
+            </div>
+            <label htmlFor="cod-toggle" className="flex items-center cursor-pointer">
+              <div className="relative">
+                <input
+                  type="checkbox"
+                  id="cod-toggle"
+                  className="sr-only"
+                  checked={isCodEnabled}
+                  onChange={handleCodToggle}
+                />
+                <div className="block bg-gray-300 w-14 h-8 rounded-full"></div>
+                <div className={`dot absolute left-1 top-1 bg-white w-6 h-6 rounded-full transition-transform ${isCodEnabled ? 'translate-x-6 bg-green-500' : ''}`}></div>
+              </div>
+              <div className={`ml-3 font-medium ${isCodEnabled ? 'text-green-600' : 'text-gray-500'}`}>
+                {isCodEnabled ? 'Enabled' : 'Disabled'}
+              </div>
+            </label>
+          </div>
+        </div>
       )}
     </motion.div>
   );

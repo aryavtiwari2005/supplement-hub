@@ -4,7 +4,8 @@ import { Dispatch } from "redux";
 import { setCartItems } from "@/redux/cartSlice";
 import { ArrowLeft, CreditCard } from "lucide-react";
 import { THEMES } from "./CartPage";
-import { useEffect } from "react";
+import { useEffect, useState } from "react"; // Import useState
+import { supabase } from "@/utils/supabase"; // Import supabase
 
 type CartItem = {
   id: number;
@@ -78,16 +79,49 @@ const PaymentMethod = ({
     paymentMethod === "cashfree" ? total * CASHFREE_DISCOUNT : 0;
   const finalTotal = total - cashfreeDiscount;
 
-  // Load Cashfree SDK dynamically
+  // State to control if the COD option is allowed
+  const [isCodAllowed, setIsCodAllowed] = useState(true);
+
+  // Load Cashfree SDK and fetch COD setting
   useEffect(() => {
+    // Fetch COD setting from Supabase
+    const fetchCodSetting = async () => {
+      try {
+        const { data, error } = await supabase
+          .from('site_settings')
+          .select('is_cod_enabled')
+          .eq('id', 1)
+          .single();
+
+        if (error) throw error;
+
+        if (data) {
+          setIsCodAllowed(data.is_cod_enabled);
+          // If COD is disabled, default the payment method to cashfree
+          if (!data.is_cod_enabled) {
+            setPaymentMethod("cashfree");
+          }
+        }
+      } catch (error) {
+        console.error("Error fetching COD setting:", error);
+        // Fallback to disabling COD if there's an error
+        setIsCodAllowed(false);
+        setPaymentMethod("cashfree");
+      }
+    };
+
+    fetchCodSetting();
+
     const script = document.createElement("script");
     script.src = "https://sdk.cashfree.com/js/v3/cashfree.js";
     script.async = true;
     document.body.appendChild(script);
     return () => {
-      document.body.removeChild(script);
+      if (document.body.contains(script)) {
+        document.body.removeChild(script);
+      }
     };
-  }, []);
+  }, [setPaymentMethod]);
 
   const handleCheckout = async () => {
     if (!user?.id || !cartItems.length) {
@@ -144,7 +178,6 @@ const PaymentMethod = ({
           throw new Error("No payment session ID returned");
         }
 
-        // Initialize Cashfree SDK
         if (typeof window.Cashfree === "undefined") {
           throw new Error("Cashfree SDK not loaded");
         }
@@ -153,7 +186,6 @@ const PaymentMethod = ({
           mode: process.env.NEXT_PUBLIC_CASHFREE_ENV || "sandbox",
         });
 
-        // Initiate payment
         cashfree.checkout({
           paymentSessionId: paymentData.paymentSessionId,
           redirect: true,
@@ -175,7 +207,7 @@ const PaymentMethod = ({
             address,
             couponCode: appliedCoupon?.code,
             scoopPointsToRedeem,
-            cashfreeDiscount: 0, // No Cashfree discount for COD
+            cashfreeDiscount: 0,
           }),
           credentials: "include",
         });
@@ -210,9 +242,7 @@ const PaymentMethod = ({
       </h2>
       <div className="space-y-3 sm:space-y-4">
         <div
-          className={`p-3 sm:p-4 rounded-lg ${THEMES[theme].border
-            } border cursor-pointer ${paymentMethod === "cashfree" ? "border-yellow-500 bg-yellow-50" : ""
-            }`}
+          className={`p-3 sm:p-4 rounded-lg ${THEMES[theme].border} border cursor-pointer ${paymentMethod === "cashfree" ? "border-yellow-500 bg-yellow-50" : ""}`}
           onClick={() => setPaymentMethod("cashfree")}
         >
           <label className="flex items-center cursor-pointer">
@@ -224,10 +254,8 @@ const PaymentMethod = ({
               className="mr-2"
             />
             <div>
-              <span
-                className={`font-medium text-sm sm:text-base ${THEMES[theme].text.primary}`}
-              >
-                Cashfree Gateway
+              <span className={`font-medium text-sm sm:text-base ${THEMES[theme].text.primary}`}>
+                Online Payment
               </span>
               <p className={`text-xs sm:text-sm ${THEMES[theme].text.muted}`}>
                 Pay securely using UPI, Card, or Netbanking (3% discount applied)
@@ -235,38 +263,35 @@ const PaymentMethod = ({
             </div>
           </label>
         </div>
-        <div
-          className={`p-3 sm:p-4 rounded-lg ${THEMES[theme].border
-            } border cursor-pointer ${paymentMethod === "cod" ? "border-yellow-500 bg-yellow-50" : ""
-            }`}
-          onClick={() => setPaymentMethod("cod")}
-        >
-          <label className="flex items-center cursor-pointer">
-            <input
-              type="radio"
-              name="paymentMethod"
-              checked={paymentMethod === "cod"}
-              onChange={() => setPaymentMethod("cod")}
-              className="mr-2"
-            />
-            <div>
-              <span
-                className={`font-medium text-sm sm:text-base ${THEMES[theme].text.primary}`}
-              >
-                Cash on Delivery
-              </span>
-              <p className={`text-xs sm:text-sm ${THEMES[theme].text.muted}`}>
-                Pay with cash when delivered
-              </p>
-            </div>
-          </label>
-        </div>
-        <div
-          className={`mt-4 sm:mt-6 p-3 sm:p-4 rounded-lg ${THEMES[theme].border} border`}
-        >
-          <h3
-            className={`font-medium mb-2 text-sm sm:text-base ${THEMES[theme].text.primary}`}
+
+        {/* The Cash on Delivery option is now rendered conditionally */}
+        {isCodAllowed && (
+          <div
+            className={`p-3 sm:p-4 rounded-lg ${THEMES[theme].border} border cursor-pointer ${paymentMethod === "cod" ? "border-yellow-500 bg-yellow-50" : ""}`}
+            onClick={() => setPaymentMethod("cod")}
           >
+            <label className="flex items-center cursor-pointer">
+              <input
+                type="radio"
+                name="paymentMethod"
+                checked={paymentMethod === "cod"}
+                onChange={() => setPaymentMethod("cod")}
+                className="mr-2"
+              />
+              <div>
+                <span className={`font-medium text-sm sm:text-base ${THEMES[theme].text.primary}`}>
+                  Cash on Delivery
+                </span>
+                <p className={`text-xs sm:text-sm ${THEMES[theme].text.muted}`}>
+                  Pay with cash when delivered
+                </p>
+              </div>
+            </label>
+          </div>
+        )}
+
+        <div className={`mt-4 sm:mt-6 p-3 sm:p-4 rounded-lg ${THEMES[theme].border} border`}>
+          <h3 className={`font-medium mb-2 text-sm sm:text-base ${THEMES[theme].text.primary}`}>
             Order Summary
           </h3>
           <div className={`text-xs sm:text-sm ${THEMES[theme].text.secondary}`}>
@@ -297,9 +322,7 @@ const PaymentMethod = ({
             {cashfreeDiscount > 0 && (
               <p>Cashfree Discount (3%): -₹{cashfreeDiscount.toFixed(2)}</p>
             )}
-            <p
-              className={`font-bold mt-2 text-sm sm:text-base ${THEMES[theme].text.primary}`}
-            >
+            <p className={`font-bold mt-2 text-sm sm:text-base ${THEMES[theme].text.primary}`}>
               Total: ₹{finalTotal.toFixed(2)}
             </p>
           </div>
@@ -315,8 +338,7 @@ const PaymentMethod = ({
           <button
             onClick={handleCheckout}
             disabled={isProcessing}
-            className={`px-4 sm:px-6 py-2 rounded bg-yellow-500 text-black hover:bg-yellow-600 text-sm sm:text-base w-full sm:w-auto ${isProcessing ? "opacity-50 cursor-not-allowed" : ""
-              }`}
+            className={`px-4 sm:px-6 py-2 rounded bg-yellow-500 text-black hover:bg-yellow-600 text-sm sm:text-base w-full sm:w-auto ${isProcessing ? "opacity-50 cursor-not-allowed" : ""}`}
           >
             {isProcessing
               ? "Processing..."
