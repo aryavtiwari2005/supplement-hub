@@ -93,7 +93,7 @@ export default function ProteinCalculator() {
       variants={containerVariants}
       initial="hidden"
       animate="visible"
-      className={`p-4 sm:p-8 pb-8 sm:pb-12 mb-8 sm:mb-12 rounded-xl sm:rounded-2xl shadow-xl mx-auto w-full max-w-md sm:max-w-3xl ${theme === "light"
+      className={`p-4 sm:p-8 pb-8 sm:pb-12 mb-8 sm:mb-12 rounded-xl sm:rounded-2xl shadow-xl mx-auto w-[90vw] max-w-md sm:max-w-3xl ${theme === "light"
           ? "bg-gradient-to-br from-white to-gray-100"
           : "bg-gradient-to-br from-gray-800 to-gray-900"
         }`}

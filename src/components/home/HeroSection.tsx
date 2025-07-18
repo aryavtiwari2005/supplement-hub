@@ -127,10 +127,8 @@ export default function HeroSection() {
         href={`/brands/${brandName.toLowerCase().replace(/\s+/g, "-")}`}
         className="flex-shrink-0 w-36 md:w-auto"
       >
-        <div
-          className={`block rounded-lg overflow-hidden shadow-sm h-full ${theme === "light" ? "bg-white" : "bg-gray-800"
-            }`}
-        >
+        {/* UPDATED: Card uses a white background */}
+        <div className="block rounded-lg overflow-hidden shadow-sm h-full bg-white">
           <div className="h-32 overflow-hidden flex items-center justify-center">
             {product ? (
               <img
@@ -146,7 +144,8 @@ export default function HeroSection() {
             )}
           </div>
           <div className="p-3 text-center">
-            <h3 className="font-medium text-sm truncate">{brandName}</h3>
+            {/* UPDATED: Card text is dark for contrast */}
+            <h3 className="font-medium text-sm truncate text-gray-800">{brandName}</h3>
           </div>
         </div>
       </Link>
@@ -177,7 +176,6 @@ export default function HeroSection() {
             onTouchMove={handleTouchMove}
             onTouchEnd={handleTouchEnd}
           >
-            {/* UPDATED: Replaced inline style with responsive Tailwind classes for aspect ratio */}
             <div className="relative w-full aspect-[2/1] sm:aspect-[4/1]">
               {banners.map((banner, index) => (
                 <motion.div
@@ -228,8 +226,8 @@ export default function HeroSection() {
                   key={index}
                   onClick={() => setCurrentSlide(index)}
                   className={`w-2 h-2 rounded-full transition-colors ${currentSlide === index
-                      ? "bg-white"
-                      : "bg-white/30 hover:bg-white/50"
+                    ? "bg-white"
+                    : "bg-white/30 hover:bg-white/50"
                     }`}
                   aria-label={`Go to slide ${index + 1}`}
                 />
@@ -238,17 +236,13 @@ export default function HeroSection() {
           </div>
         </div>
 
-        <div
-          className={`w-full py-2 ${theme === "light" ? "bg-gray-50" : "bg-gray-900"
-            }`}
-        >
+        {/* UPDATED: Padding and background color */}
+        <div className="w-full py-12 sm:py-16 bg-yellow-100">
           <div className="container mx-auto max-w-6xl">
-            <div className="mt-10">
-              <h2
-                className={`text-xl font-bold mb-6 text-center ${theme === "light" ? "text-gray-800" : "text-white"
-                  }`}
-              >
-                Shop By Brand
+            <div>
+              {/* UPDATED: Title color */}
+              <h2 className="text-2xl sm:text-3xl font-bold mb-8 text-center text-yellow-900">
+                Shop By <span className="text-yellow-600 italic border-b-4 border-[#a16207] pb-1">Featured Brands</span>
               </h2>
               <div className="group relative w-full overflow-hidden md:overflow-visible">
                 <div className="flex gap-4 md:grid md:grid-cols-6 md:animate-none group-hover:[animation-play-state:paused]">
