@@ -1,3 +1,5 @@
+// api/verify/route.ts
+
 import { supabase } from "@/utils/supabase";
 import { NextResponse } from "next/server";
 
@@ -10,30 +12,35 @@ export async function GET(req: Request) {
   }
 
   try {
-    // Verify the token
-    const { data: user } = await supabase
-      .from("users")
-      .select("*")
+    // Verify the token in the correct table
+    const { data: user, error: findError } = await supabase
+      .from("users_onescoop") // FIXED: Changed table to 'users_onescoop'
+      .select("id")
       .eq("verification_token", token)
       .single();
 
-    if (!user) {
+    if (findError || !user) {
       return NextResponse.json(
         { message: "Invalid or expired token" },
         { status: 400 }
       );
     }
 
-    // Mark email as verified
-    const { error } = await supabase
-      .from("users")
+    // Mark email as verified in the correct table
+    const { error: updateError } = await supabase
+      .from("users_onescoop") // FIXED: Changed table to 'users_onescoop'
       .update({ email_verified: true, verification_token: null })
       .eq("id", user.id);
 
-    if (error) throw error;
+    if (updateError) throw updateError;
 
-    return NextResponse.json({ message: "Email verified successfully!" });
+    // You can redirect the user to the login page or a success page
+    // instead of just returning a JSON message.
+    const url = new URL('/login?verified=true', req.url);
+    return NextResponse.redirect(url);
+
   } catch (err: any) {
-    return NextResponse.json({ message: err.message }, { status: 500 });
+    const url = new URL('/login?error=verification-failed', req.url);
+    return NextResponse.redirect(url);
   }
 }

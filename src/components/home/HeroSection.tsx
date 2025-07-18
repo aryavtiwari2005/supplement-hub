@@ -151,7 +151,7 @@ export default function HeroSection() {
   return (
     // REMOVED: The <style jsx global> block is no longer needed here
     <div className="flex flex-col w-full">
-      <div className="sm:mt-4">
+      <div className="sm:mt-4 sm:mb-4">
         <div
           className="relative mx-auto w-full sm:w-[95vw] sm:max-w-[1440px] sm:rounded-lg overflow-hidden"
           onTouchStart={handleTouchStart}
