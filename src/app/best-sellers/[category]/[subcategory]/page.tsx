@@ -36,9 +36,9 @@ export default function BestSellersSubcategoryPage() {
             product.category &&
             product.subcategory &&
             product.category.toLowerCase() ===
-              formatTitle(category).toLowerCase() &&
+            formatTitle(category).toLowerCase() &&
             product.subcategory.toLowerCase() ===
-              formatTitle(subcategory).toLowerCase()
+            formatTitle(subcategory).toLowerCase()
         );
         setProducts(filteredProducts);
       } catch (err) {
@@ -80,15 +80,13 @@ export default function BestSellersSubcategoryPage() {
   if (isLoading) {
     return (
       <div
-        className={`min-h-screen ${
-          theme === "light" ? "bg-white" : "bg-gray-900"
-        }`}
+        className={`min-h-screen ${theme === "light" ? "bg-white" : "bg-gray-900"
+          }`}
       >
         <div className="container mx-auto px-2 sm:px-4 py-8 sm:py-12 text-center">
           <p
-            className={`text-sm sm:text-base ${
-              theme === "light" ? "text-gray-700" : "text-gray-300"
-            }`}
+            className={`text-sm sm:text-base ${theme === "light" ? "text-gray-700" : "text-gray-300"
+              }`}
           >
             Loading {formatTitle(subcategory)} in {formatTitle(category)}...
           </p>
@@ -103,22 +101,19 @@ export default function BestSellersSubcategoryPage() {
       initial="initial"
       animate="animate"
       exit="exit"
-      className={`min-h-screen ${
-        theme === "light" ? "bg-gray-50" : "bg-gray-900"
-      }`}
+      className={`min-h-screen ${theme === "light" ? "bg-gray-50" : "bg-gray-900"
+        }`}
     >
       <div className="container mx-auto px-2 sm:px-4 py-8 sm:py-12">
         <motion.h1
           variants={titleVariants}
-          className={`text-3xl sm:text-4xl md:text-5xl font-extrabold text-center mb-4 sm:mb-6 ${
-            theme === "light" ? "text-gray-800" : "text-white"
-          }`}
+          className={`text-3xl sm:text-4xl md:text-5xl font-extrabold text-center mb-4 sm:mb-6 ${theme === "light" ? "text-gray-800" : "text-white"
+            }`}
         >
           Best{" "}
           <span
-            className={`${
-              theme === "light" ? "text-yellow-600" : "text-yellow-400"
-            }`}
+            className={`${theme === "light" ? "text-yellow-600" : "text-yellow-400"
+              }`}
           >
             {formatTitle(subcategory)}
           </span>{" "}
@@ -127,9 +122,8 @@ export default function BestSellersSubcategoryPage() {
         <motion.p
           initial={{ opacity: 0 }}
           animate={{ opacity: 1, transition: { duration: 0.6, delay: 0.3 } }}
-          className={`text-center text-sm sm:text-base md:text-lg mb-8 sm:mb-12 ${
-            theme === "light" ? "text-gray-600" : "text-gray-300"
-          }`}
+          className={`text-center text-sm sm:text-base md:text-lg mb-8 sm:mb-12 ${theme === "light" ? "text-gray-600" : "text-gray-300"
+            }`}
         >
           Discover our top-rated {formatTitle(subcategory).toLowerCase()}{" "}
           products in the {formatTitle(category)} category, loved by fitness
@@ -138,23 +132,20 @@ export default function BestSellersSubcategoryPage() {
 
         <motion.div
           variants={dividerVariants}
-          className={`h-1 mx-auto mb-8 sm:mb-12 ${
-            theme === "light" ? "bg-yellow-500" : "bg-yellow-400"
-          } rounded-full max-w-xs sm:max-w-md`}
+          className={`h-1 mx-auto mb-8 sm:mb-12 ${theme === "light" ? "bg-yellow-500" : "bg-yellow-400"
+            } rounded-full max-w-xs sm:max-w-md`}
         />
 
         <section className="mb-8 sm:mb-12 text-center">
           <h2
-            className={`text-2xl sm:text-3xl font-bold mb-3 sm:mb-4 ${
-              theme === "light" ? "text-gray-800" : "text-white"
-            }`}
+            className={`text-2xl sm:text-3xl font-bold mb-3 sm:mb-4 ${theme === "light" ? "text-gray-800" : "text-white"
+              }`}
           >
             About {formatTitle(subcategory)} in {formatTitle(category)}
           </h2>
           <p
-            className={`text-sm sm:text-base max-w-3xl mx-auto ${
-              theme === "light" ? "text-gray-600" : "text-gray-300"
-            }`}
+            className={`text-sm sm:text-base max-w-3xl mx-auto ${theme === "light" ? "text-gray-600" : "text-gray-300"
+              }`}
           >
             Our {formatTitle(subcategory)} products in the{" "}
             {formatTitle(category)} category are among the best-selling
@@ -193,7 +184,6 @@ export default function BestSellersSubcategoryPage() {
                       category: product.category,
                       rating: product.rating,
                       discount: product.discountPercentage,
-                      description: product.description,
                     }}
                     showCategory={true}
                     theme={theme}
@@ -204,9 +194,8 @@ export default function BestSellersSubcategoryPage() {
           </motion.div>
         ) : (
           <p
-            className={`text-center text-base sm:text-lg ${
-              theme === "light" ? "text-gray-600" : "text-gray-400"
-            }`}
+            className={`text-center text-base sm:text-lg ${theme === "light" ? "text-gray-600" : "text-gray-400"
+              }`}
           >
             No {formatTitle(subcategory)} products in {formatTitle(category)}{" "}
             available at this time.
