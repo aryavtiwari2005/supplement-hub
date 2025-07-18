@@ -2,6 +2,16 @@
 @tailwind components;
 @tailwind utilities;
 
+@keyframes marquee {
+  0% {
+    transform: translateX(0%);
+  }
+
+  100% {
+    transform: translateX(-100%);
+  }
+}
+
 :root {
   /* Light Theme Colors */
   --light-background: #ffffff;
@@ -24,8 +34,8 @@
 
 /* Base Transition */
 html {
-  transition: 
-    background-color 0.3s, 
+  transition:
+    background-color 0.3s,
     color 0.3s,
     border-color 0.3s;
 }
@@ -51,15 +61,17 @@ html.dark {
 }
 
 /* Global Body and HTML Styling */
-html, body {
+html,
+body {
   background-color: var(--background-primary);
   color: var(--text-primary);
-  transition: 
-    background-color 0.3s, 
+  transition:
+    background-color 0.3s,
     color 0.3s,
     border-color 0.3s;
   min-height: 100vh;
-  font-size: 0.875rem; /* Set base font size to 14px (smaller than 16px) */
+  font-size: 0.875rem;
+  /* Set base font size to 14px (smaller than 16px) */
 }
 
 /* Ensure full page background coverage */
@@ -68,8 +80,8 @@ html, body {
   background-color: var(--background-primary);
   color: var(--text-primary);
   min-height: 100vh;
-  transition: 
-    background-color 0.3s, 
+  transition:
+    background-color 0.3s,
     color 0.3s;
 }
 
@@ -104,9 +116,8 @@ html, body {
 /* Optional: Scrollbar Theming */
 * {
   scrollbar-width: thin;
-  scrollbar-color: 
-    var(--accent-color) 
-    var(--background-secondary);
+  scrollbar-color:
+    var(--accent-color) var(--background-secondary);
 }
 
 /* Webkit Scrollbar */
@@ -125,9 +136,9 @@ html, body {
 
 /* Theme Transition Utility */
 .theme-transition {
-  transition: 
-    background-color 0.3s, 
-    color 0.3s, 
+  transition:
+    background-color 0.3s,
+    color 0.3s,
     border-color 0.3s;
 }
 
@@ -142,6 +153,7 @@ html, body {
   .no-scrollbar::-webkit-scrollbar {
     display: none;
   }
+
   .no-scrollbar {
     -ms-overflow-style: none;
     scrollbar-width: none;

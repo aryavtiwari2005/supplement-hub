@@ -11,6 +11,9 @@ const config: Config = {
   theme: {
     extend: {
       // Font Families
+      animation: {
+        marquee: 'marquee 30s linear infinite',
+      },
       fontFamily: {
         sans: ["Inter", ...defaultTheme.fontFamily.sans],
         display: ["Playfair Display", "serif"],

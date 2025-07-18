@@ -8,7 +8,7 @@ import { selectTheme } from "@/redux/themeSlice";
 import { supabase } from "@/utils/supabase";
 import Link from "next/link";
 
-// Updated Banner interface to include an optional mobile image URL
+// Interfaces
 interface Banner {
   id: number;
   image_url: string;
@@ -46,7 +46,6 @@ export default function HeroSection() {
 
   useEffect(() => {
     const fetchData = async () => {
-      // Fetch both desktop (image_url) and mobile (mobile_image_url) banner URLs
       const { data: bannerData, error: bannerError } = await supabase
         .from("banners")
         .select("id, image_url, mobile_image_url")
@@ -55,7 +54,6 @@ export default function HeroSection() {
       if (bannerError) console.error("Error fetching banners:", bannerError);
       setBanners(bannerData || []);
 
-      // Fetch Featured Brands
       const { data: brandData, error: brandError } = await supabase
         .from("featured_brands")
         .select("brand_name")
@@ -127,7 +125,6 @@ export default function HeroSection() {
         href={`/brands/${brandName.toLowerCase().replace(/\s+/g, "-")}`}
         className="flex-shrink-0 w-36 md:w-auto"
       >
-        {/* UPDATED: Card uses a white background */}
         <div className="block rounded-lg overflow-hidden shadow-sm h-full bg-white">
           <div className="h-32 overflow-hidden flex items-center justify-center">
             {product ? (
@@ -144,7 +141,6 @@ export default function HeroSection() {
             )}
           </div>
           <div className="p-3 text-center">
-            {/* UPDATED: Card text is dark for contrast */}
             <h3 className="font-medium text-sm truncate text-gray-800">{brandName}</h3>
           </div>
         </div>
@@ -153,118 +149,99 @@ export default function HeroSection() {
   };
 
   return (
-    <>
-      <style jsx global>{`
-        @keyframes marquee {
-          0% {
-            transform: translateX(0%);
-          }
-          100% {
-            transform: translateX(-100%);
-          }
-        }
-        .animate-marquee {
-          animation: marquee 30s linear infinite;
-        }
-      `}</style>
+    // REMOVED: The <style jsx global> block is no longer needed here
+    <div className="flex flex-col w-full">
+      <div className="sm:mt-4">
+        <div
+          className="relative mx-auto w-full sm:w-[95vw] sm:max-w-[1440px] sm:rounded-lg overflow-hidden"
+          onTouchStart={handleTouchStart}
+          onTouchMove={handleTouchMove}
+          onTouchEnd={handleTouchEnd}
+        >
+          <div className="relative w-full aspect-[2/1] sm:aspect-[4/1]">
+            {banners.map((banner, index) => (
+              <motion.div
+                key={banner.id}
+                initial={{ opacity: 0 }}
+                animate={{ opacity: currentSlide === index ? 1 : 0 }}
+                transition={{ opacity: { duration: 0.5 } }}
+                className="absolute inset-0"
+                style={{ zIndex: currentSlide === index ? 1 : 0 }}
+              >
+                <picture>
+                  <source
+                    srcSet={banner.mobile_image_url || banner.image_url}
+                    media="(max-width: 640px)"
+                  />
+                  <img
+                    src={banner.image_url}
+                    alt={`Banner ${index + 1}`}
+                    className="w-full h-full object-cover"
+                    width={1440}
+                    height={360}
+                    loading={index === 0 ? "eager" : "lazy"}
+                  />
+                </picture>
+              </motion.div>
+            ))}
+          </div>
 
-      <div className="flex flex-col w-full">
-        <div className="sm:mt-4">
-          <div
-            className="relative mx-auto w-full sm:w-[95vw] sm:max-w-[1440px] sm:rounded-lg overflow-hidden"
-            onTouchStart={handleTouchStart}
-            onTouchMove={handleTouchMove}
-            onTouchEnd={handleTouchEnd}
+          <button
+            onClick={prevSlide}
+            className="absolute left-2 top-1/2 -translate-y-1/2 z-10 bg-black/30 hover:bg-black/40 text-white p-1 rounded-full"
+            aria-label="Previous slide"
           >
-            <div className="relative w-full aspect-[2/1] sm:aspect-[4/1]">
-              {banners.map((banner, index) => (
-                <motion.div
-                  key={banner.id}
-                  initial={{ opacity: 0 }}
-                  animate={{ opacity: currentSlide === index ? 1 : 0 }}
-                  transition={{ opacity: { duration: 0.5 } }}
-                  className="absolute inset-0"
-                  style={{ zIndex: currentSlide === index ? 1 : 0 }}
-                >
-                  <picture>
-                    <source
-                      srcSet={banner.mobile_image_url || banner.image_url}
-                      media="(max-width: 640px)"
-                    />
-                    <img
-                      src={banner.image_url}
-                      alt={`Banner ${index + 1}`}
-                      className="w-full h-full object-cover"
-                      width={1440}
-                      height={360}
-                      loading={index === 0 ? "eager" : "lazy"}
-                    />
-                  </picture>
-                </motion.div>
-              ))}
-            </div>
+            <ChevronLeft className="h-5 w-5" />
+          </button>
 
-            <button
-              onClick={prevSlide}
-              className="absolute left-2 top-1/2 -translate-y-1/2 z-10 bg-black/30 hover:bg-black/40 text-white p-1 rounded-full"
-              aria-label="Previous slide"
-            >
-              <ChevronLeft className="h-5 w-5" />
-            </button>
+          <button
+            onClick={nextSlide}
+            className="absolute right-2 top-1/2 -translate-y-1/2 z-10 bg-black/30 hover:bg-black/40 text-white p-1 rounded-full"
+            aria-label="Next slide"
+          >
+            <ChevronRight className="h-5 w-5" />
+          </button>
 
-            <button
-              onClick={nextSlide}
-              className="absolute right-2 top-1/2 -translate-y-1/2 z-10 bg-black/30 hover:bg-black/40 text-white p-1 rounded-full"
-              aria-label="Next slide"
-            >
-              <ChevronRight className="h-5 w-5" />
-            </button>
-
-            <div className="flex absolute bottom-3 left-0 right-0 z-10 justify-center space-x-1.5">
-              {banners.map((_, index) => (
-                <button
-                  key={index}
-                  onClick={() => setCurrentSlide(index)}
-                  className={`w-2 h-2 rounded-full transition-colors ${currentSlide === index
-                    ? "bg-white"
-                    : "bg-white/30 hover:bg-white/50"
-                    }`}
-                  aria-label={`Go to slide ${index + 1}`}
-                />
-              ))}
-            </div>
+          <div className="flex absolute bottom-3 left-0 right-0 z-10 justify-center space-x-1.5">
+            {banners.map((_, index) => (
+              <button
+                key={index}
+                onClick={() => setCurrentSlide(index)}
+                className={`w-2 h-2 rounded-full transition-colors ${currentSlide === index ? "bg-white" : "bg-white/30 hover:bg-white/50"
+                  }`}
+                aria-label={`Go to slide ${index + 1}`}
+              />
+            ))}
           </div>
         </div>
+      </div>
 
-        {/* UPDATED: Padding and background color */}
-        <div className="w-full py-12 sm:py-16 bg-yellow-100">
-          <div className="container mx-auto max-w-6xl">
-            <div>
-              {/* UPDATED: Title color */}
-              <h2 className="text-2xl sm:text-3xl font-bold mb-8 text-center text-yellow-900">
-                Shop By <span className="text-yellow-600 italic border-b-4 border-[#a16207] pb-1">Featured Brands</span>
-              </h2>
-              <div className="group relative w-full overflow-hidden md:overflow-visible">
-                <div className="flex gap-4 md:grid md:grid-cols-6 md:animate-none group-hover:[animation-play-state:paused]">
-                  <div className="flex gap-4 animate-marquee md:hidden">
-                    {featuredBrandNames.map((brandName) => (
-                      <BrandCard key={`${brandName}-1`} brandName={brandName} />
-                    ))}
-                    {featuredBrandNames.map((brandName) => (
-                      <BrandCard key={`${brandName}-2`} brandName={brandName} />
-                    ))}
-                  </div>
-                  <div className="hidden md:contents">
-                    {featuredBrandNames.map((brandName) => (
-                      <BrandCard key={brandName} brandName={brandName} />
-                    ))}
-                  </div>
+      <div className="w-full py-12 sm:py-16 bg-yellow-100">
+        <div className="container mx-auto max-w-6xl">
+          <div>
+            <h2 className="text-2xl sm:text-3xl font-bold mb-8 text-center text-yellow-900">
+              Shop By <span className="text-yellow-600 italic border-b-4 border-[#a16207] pb-1">Featured Brands</span>
+            </h2>
+            <div className="group relative w-full overflow-hidden md:overflow-visible">
+              <div className="flex gap-4 md:grid md:grid-cols-6 md:animate-none group-hover:[animation-play-state:paused]">
+                <div className="flex gap-4 animate-marquee md:hidden">
+                  {featuredBrandNames.map((brandName) => (
+                    <BrandCard key={`${brandName}-1`} brandName={brandName} />
+                  ))}
+                  {featuredBrandNames.map((brandName) => (
+                    <BrandCard key={`${brandName}-2`} brandName={brandName} />
+                  ))}
+                </div>
+                <div className="hidden md:contents">
+                  {featuredBrandNames.map((brandName) => (
+                    <BrandCard key={brandName} brandName={brandName} />
+                  ))}
                 </div>
               </div>
             </div>
           </div>
         </div>
       </div>
-    </>
+    </div>
   );
 }
