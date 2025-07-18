@@ -47,7 +47,7 @@ export default function BrandPage() {
           return (
             product.brand &&
             product.brand.toLowerCase() ===
-              formatBrandName(brandSlug).toLowerCase()
+            formatBrandName(brandSlug).toLowerCase()
           );
         });
         setBrandProducts(filteredProducts);
@@ -87,15 +87,13 @@ export default function BrandPage() {
   if (isLoading) {
     return (
       <div
-        className={`min-h-screen ${
-          theme === "light" ? "bg-white" : "bg-gray-900"
-        }`}
+        className={`min-h-screen ${theme === "light" ? "bg-white" : "bg-gray-900"
+          }`}
       >
         <div className="container mx-auto px-2 sm:px-4 py-8 sm:py-12 text-center">
           <p
-            className={`text-sm sm:text-base ${
-              theme === "light" ? "text-gray-700" : "text-gray-300"
-            }`}
+            className={`text-sm sm:text-base ${theme === "light" ? "text-gray-700" : "text-gray-300"
+              }`}
           >
             Loading {brandName} products...
           </p>
@@ -110,22 +108,19 @@ export default function BrandPage() {
       initial="initial"
       animate="animate"
       exit="exit"
-      className={`min-h-screen ${
-        theme === "light" ? "bg-gray-50" : "bg-gray-900"
-      }`}
+      className={`min-h-screen ${theme === "light" ? "bg-gray-50" : "bg-gray-900"
+        }`}
     >
       <div className="container mx-auto px-2 sm:px-4 py-8 sm:py-12">
         <motion.h1
           variants={titleVariants}
-          className={`text-3xl sm:text-4xl md:text-5xl font-extrabold text-center mb-4 sm:mb-6 ${
-            theme === "light" ? "text-gray-800" : "text-white"
-          }`}
+          className={`text-3xl sm:text-4xl md:text-5xl font-extrabold text-center mb-4 sm:mb-6 ${theme === "light" ? "text-gray-800" : "text-white"
+            }`}
         >
           {brandName}{" "}
           <span
-            className={`${
-              theme === "light" ? "text-yellow-600" : "text-yellow-400"
-            }`}
+            className={`${theme === "light" ? "text-yellow-600" : "text-yellow-400"
+              }`}
           >
             Protein Collection
           </span>
@@ -133,32 +128,28 @@ export default function BrandPage() {
         <motion.p
           initial={{ opacity: 0 }}
           animate={{ opacity: 1, transition: { duration: 0.6, delay: 0.3 } }}
-          className={`text-center text-sm sm:text-base md:text-lg mb-8 sm:mb-12 ${
-            theme === "light" ? "text-gray-600" : "text-gray-300"
-          }`}
+          className={`text-center text-sm sm:text-base md:text-lg mb-8 sm:mb-12 ${theme === "light" ? "text-gray-600" : "text-gray-300"
+            }`}
         >
           Explore premium {brandName} proteins designed for your fitness goals.
         </motion.p>
 
         <motion.div
           variants={dividerVariants}
-          className={`h-1 mx-auto mb-8 sm:mb-12 ${
-            theme === "light" ? "bg-yellow-500" : "bg-yellow-400"
-          } rounded-full max-w-xs sm:max-w-md`}
+          className={`h-1 mx-auto mb-8 sm:mb-12 ${theme === "light" ? "bg-yellow-500" : "bg-yellow-400"
+            } rounded-full max-w-xs sm:max-w-md`}
         />
 
         <section className="mb-8 sm:mb-12 text-center">
           <h2
-            className={`text-2xl sm:text-3xl font-bold mb-3 sm:mb-4 ${
-              theme === "light" ? "text-gray-800" : "text-white"
-            }`}
+            className={`text-2xl sm:text-3xl font-bold mb-3 sm:mb-4 ${theme === "light" ? "text-gray-800" : "text-white"
+              }`}
           >
             About {brandName} Proteins
           </h2>
           <p
-            className={`text-sm sm:text-base max-w-3xl mx-auto ${
-              theme === "light" ? "text-gray-600" : "text-gray-300"
-            }`}
+            className={`text-sm sm:text-base max-w-3xl mx-auto ${theme === "light" ? "text-gray-600" : "text-gray-300"
+              }`}
           >
             {brandDescriptions[brandSlug.toLowerCase()] ||
               `Explore a wide range of high-quality protein products from ${brandName}, designed to support your fitness journey.`}
@@ -192,7 +183,6 @@ export default function BrandPage() {
                       category: product.category,
                       rating: product.rating,
                       discount: product.discountPercentage,
-                      description: product.description,
                     }}
                     showCategory={true}
                     theme={theme}
@@ -203,9 +193,8 @@ export default function BrandPage() {
           </motion.div>
         ) : (
           <p
-            className={`text-center text-base sm:text-lg ${
-              theme === "light" ? "text-gray-600" : "text-gray-400"
-            }`}
+            className={`text-center text-base sm:text-lg ${theme === "light" ? "text-gray-600" : "text-gray-400"
+              }`}
           >
             No {brandName} products available at this time.
           </p>
